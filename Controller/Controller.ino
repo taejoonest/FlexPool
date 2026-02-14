@@ -38,7 +38,7 @@
 #include <ESPmDNS.h>
 #include <HardwareSerial.h>
 #include "PentairProtocol.h"
-#include "WiFiSetup.h"
+#include "BLESetup.h"
 #include "MQTTHandler.h"
 #include "WebUI.h"
 
@@ -97,6 +97,9 @@ PumpStatus pumpStatus;
 // Web server on port 80
 WebServer server(80);
 
+// BLE provisioning handler
+BLESetup bleSetup;
+
 // MQTT handler for remote control
 MQTTHandler mqtt;
 
@@ -120,20 +123,21 @@ void setup() {
   
   printBanner();
   
-  // ---- WiFi Setup (no hardcoded credentials!) ----
+  // ---- WiFi Setup via Bluetooth (no hardcoded credentials!) ----
   // Check if we have saved WiFi credentials in flash
-  if (!WiFiSetup::hasSavedCredentials()) {
-    // FIRST TIME: No credentials saved → run setup portal
+  if (!BLESetup::hasSavedCredentials()) {
+    // FIRST TIME: No credentials saved → start BLE provisioning
     Serial.println("[WiFi] No saved credentials found.");
-    WiFiSetup::runSetupPortal();  // Blocks until user saves credentials, then reboots
+    Serial.println("[WiFi] Starting Bluetooth setup (5 minutes)...");
+    bleSetup.runProvisioning();  // Blocks until phone sends credentials, then reboots
     return;  // Never reached (ESP restarts)
   }
   
   // NORMAL BOOT: Try connecting with saved credentials
-  if (!WiFiSetup::connectSaved()) {
-    // Saved credentials didn't work → run setup portal again
-    Serial.println("[WiFi] Saved credentials failed. Starting setup portal...");
-    WiFiSetup::runSetupPortal();
+  if (!BLESetup::connectSaved()) {
+    // Saved credentials didn't work → start BLE provisioning again
+    Serial.println("[WiFi] Saved credentials failed. Starting Bluetooth setup...");
+    bleSetup.runProvisioning();
     return;
   }
   
@@ -204,7 +208,7 @@ void loop() {
     static unsigned long lastReconnect = 0;
     if (millis() - lastReconnect > 30000) {  // Try every 30 seconds
       Serial.println("[WiFi] Connection lost, reconnecting...");
-      WiFiSetup::connectSaved();
+      BLESetup::connectSaved();
       lastReconnect = millis();
     }
   }
@@ -294,17 +298,17 @@ void setupWebServer() {
     sendJsonResponse(true, "Full stop sequence sent");
   });
   
-  // GET /wifi/reset - Clear saved WiFi credentials and reboot into setup mode
+  // GET /wifi/reset - Clear saved WiFi credentials and reboot into BLE setup mode
   server.on("/wifi/reset", HTTP_GET, []() {
     server.send(200, "text/html",
       "<html><body style='background:#0f172a;color:#e2e8f0;font-family:sans-serif;"
       "display:flex;justify-content:center;align-items:center;height:100vh'>"
       "<div style='text-align:center'><h1 style='color:#f59e0b'>WiFi Reset</h1>"
-      "<p>Credentials cleared. ESP32 is restarting into setup mode.</p>"
-      "<p style='color:#64748b;margin-top:16px'>Connect to \"FlexPool-Setup\" to reconfigure.</p>"
+      "<p>Credentials cleared. ESP32 is restarting into Bluetooth setup mode.</p>"
+      "<p style='color:#64748b;margin-top:16px'>Open the FlexPool app to reconfigure via Bluetooth.</p>"
       "</div></body></html>");
     delay(1000);
-    WiFiSetup::clearCredentials();
+    BLESetup::clearCredentials();
     delay(500);
     ESP.restart();
   });
@@ -314,7 +318,7 @@ void setupWebServer() {
     char json[256];
     snprintf(json, sizeof(json),
       "{\"ssid\":\"%s\",\"ip\":\"%s\",\"rssi\":%d,\"mac\":\"%s\"}",
-      WiFiSetup::getSavedSSID().c_str(),
+      BLESetup::getSavedSSID().c_str(),
       WiFi.localIP().toString().c_str(),
       WiFi.RSSI(),
       WiFi.macAddress().c_str());
@@ -384,7 +388,8 @@ void handleSerialCommand(String input) {
   // Special text commands
   if (input.equalsIgnoreCase("reset") || input.equalsIgnoreCase("wifi reset")) {
     Serial.println("\n[WiFi] Clearing saved credentials and restarting...");
-    WiFiSetup::clearCredentials();
+    Serial.println("[WiFi] BLE setup will start on next boot.");
+    BLESetup::clearCredentials();
     delay(500);
     ESP.restart();
     return;
@@ -849,14 +854,14 @@ void printMenu() {
   Serial.println("  11 - FULL: Set RPM and run");
   Serial.println("  12 - FULL: Stop pump");
   Serial.println("  --- WiFi ---");
-  Serial.println("  reset - Clear WiFi credentials & reconfigure");
+  Serial.println("  reset - Clear WiFi & restart Bluetooth setup");
   Serial.println("========================================");
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("  WiFi: http://flexpool.local or http://%s\n",
                   WiFi.localIP().toString().c_str());
     Serial.printf("  Network: %s (%d dBm)\n",
-                  WiFiSetup::getSavedSSID().c_str(), WiFi.RSSI());
+                  BLESetup::getSavedSSID().c_str(), WiFi.RSSI());
     Serial.printf("  MQTT: %s  Device ID: %s\n",
                   mqtt.isConnected() ? "Connected" : "Disconnected",
                   mqtt.getDeviceId().c_str());
