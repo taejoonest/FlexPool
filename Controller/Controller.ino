@@ -372,7 +372,7 @@ void handleApiStatus() {
     remoteControlActive ? "true" : "false",
     pumpStatus.valid ? "true" : "false",
     pumpStatus.valid ? (millis() - pumpStatus.lastUpdate) / 1000 : 0,
-    WiFiSetup::getSavedSSID().c_str(),
+    BLESetup::getSavedSSID().c_str(),
     WiFi.localIP().toString().c_str(),
     WiFi.RSSI(),
     mqtt.getDeviceId().c_str(),
