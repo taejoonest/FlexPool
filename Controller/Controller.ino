@@ -23,8 +23,8 @@
  *   To stop: Set drive stop (CMD 0x06, data=0x04), then local (CMD 0x04, data=0x00)
  * 
  * Wiring:
- *   ESP32 GPIO 17 --> MAX3485 DI
- *   ESP32 GPIO 16 <-- MAX3485 RO
+ *   ESP32 GPIO 18 --> MAX3485 DI
+ *   ESP32 GPIO 19 <-- MAX3485 RO
  *   ESP32 GPIO 4  --> MAX3485 DE & RE (tie together)
  *   ESP32 GND     --> MAX3485 GND
  *   ESP32 3.3V    --> MAX3485 VCC
@@ -49,8 +49,8 @@ const char* MDNS_HOSTNAME = "flexpool";
 // =============================================
 // PIN CONFIGURATION
 // =============================================
-#define RS485_TX_PIN    17    // ESP32 TX -> MAX3485 DI
-#define RS485_RX_PIN    16    // ESP32 RX <- MAX3485 RO
+#define RS485_TX_PIN    18    // ESP32 TX -> MAX3485 DI
+#define RS485_RX_PIN    19    // ESP32 RX <- MAX3485 RO
 #define RS485_DE_RE_PIN 4     // ESP32 -> MAX3485 DE & RE
 
 // =============================================

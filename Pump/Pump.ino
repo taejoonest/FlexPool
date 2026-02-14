@@ -25,8 +25,8 @@
  *   - Tracks power consumption based on RPM
  * 
  * Wiring:
- *   ESP32 GPIO 17 --> MAX3485 DI
- *   ESP32 GPIO 16 <-- MAX3485 RO
+ *   ESP32 GPIO 18 --> MAX3485 DI
+ *   ESP32 GPIO 19 <-- MAX3485 RO
  *   ESP32 GPIO 4  --> MAX3485 DE & RE (tie together)
  *   ESP32 GND     --> MAX3485 GND
  *   ESP32 3.3V    --> MAX3485 VCC
@@ -41,8 +41,8 @@
 // =============================================
 // PIN CONFIGURATION
 // =============================================
-#define RS485_TX_PIN    17
-#define RS485_RX_PIN    16
+#define RS485_TX_PIN    18
+#define RS485_RX_PIN    19
 #define RS485_DE_RE_PIN 4
 
 // =============================================
