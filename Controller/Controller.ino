@@ -38,6 +38,7 @@
 #include <ESPmDNS.h>
 #include <HardwareSerial.h>
 #include "PentairProtocol.h"
+#include "PumpStatus.h"
 #include "BLESetup.h"
 #include "MQTTHandler.h"
 #include "WebUI.h"
@@ -76,22 +77,7 @@ size_t  rxLen = 0;
 // =============================================
 bool remoteControlActive = false;
 
-// Last known pump status (from CMD_STATUS responses)
-struct PumpStatus {
-  bool     valid    = false;  // Have we received at least one status?
-  bool     running  = false;
-  uint16_t rpm      = 0;
-  uint16_t watts    = 0;
-  uint8_t  gpm      = 0;
-  uint8_t  mode     = 0;
-  uint8_t  errCode  = 0;
-  uint8_t  drive    = 0;
-  uint8_t  timer    = 0;
-  uint8_t  hour     = 0;
-  uint8_t  minute   = 0;
-  unsigned long lastUpdate = 0;
-};
-
+// Pump status (struct defined in PumpStatus.h, shared with MQTTHandler)
 PumpStatus pumpStatus;
 
 // Web server on port 80

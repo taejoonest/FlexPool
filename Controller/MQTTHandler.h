@@ -28,6 +28,7 @@
 
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include "PumpStatus.h"
 
 // =============================================
 // MQTT BROKER SETTINGS
@@ -57,7 +58,6 @@ void runFullSpeedSequence(uint16_t rpm);
 void runFullStopSequence();
 
 // External pump status (defined in Controller.ino)
-struct PumpStatus;
 extern PumpStatus pumpStatus;
 extern bool remoteControlActive;
 
@@ -172,7 +172,7 @@ public:
   const String& getDeviceId() const { return _deviceId; }
   const String& getTopicCmd() const { return _topicCmd; }
   const String& getTopicStatus() const { return _topicStatus; }
-  bool isConnected() const { return _mqtt.connected(); }
+  bool isConnected() { return _mqtt.connected(); }
   
   // Initialize MQTT
   void begin() {
