@@ -562,6 +562,7 @@ void runFullSpeedSequence(uint16_t rpm) {
   waitForResponse();
   
   // Step 5: Set remote control
+  delay(500);  // Small gap to let pump finish processing previous response
   Serial.println("\nStep 5/5: Setting remote control...");
   {
     uint8_t data[] = { CTRL_REMOTE };
@@ -596,6 +597,7 @@ void runFullStopSequence() {
   waitForResponse();
   
   // Step 2: Return to local control
+  delay(500);  // Small gap to let pump finish processing previous response
   Serial.println("\nStep 2/2: Returning to local control...");
   {
     uint8_t data[] = { CTRL_LOCAL };
