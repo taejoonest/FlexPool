@@ -93,6 +93,9 @@ MQTTHandler mqtt;
 unsigned long lastAutoQuery = 0;
 #define AUTO_QUERY_INTERVAL  5000  // Query pump status every 5 seconds when running
 
+// Track WiFi state
+bool wifiConnected = false;
+
 // =============================================
 // SETUP
 // =============================================
@@ -109,24 +112,35 @@ void setup() {
   
   printBanner();
   
-  // ---- WiFi Setup via Bluetooth (no hardcoded credentials!) ----
-  // Check if we have saved WiFi credentials in flash
-  if (!BLESetup::hasSavedCredentials()) {
-    // FIRST TIME: No credentials saved → start BLE provisioning
-    Serial.println("[WiFi] No saved credentials found.");
-    Serial.println("[WiFi] Starting Bluetooth setup (5 minutes)...");
-    bleSetup.runProvisioning();  // Blocks until phone sends credentials, then reboots
-    return;  // Never reached (ESP restarts)
+  // ---- RS-485 is now READY ----
+  // Serial commands and RS-485 work immediately, even without WiFi!
+  Serial.println("[RS-485] Ready! You can send commands via Serial Monitor now.");
+  Serial.println();
+  
+  // ---- WiFi Setup (optional — RS-485 works without it) ----
+  if (BLESetup::hasSavedCredentials()) {
+    // Try connecting with saved credentials
+    if (BLESetup::connectSaved()) {
+      wifiConnected = true;
+      startWiFiServices();
+    } else {
+      Serial.println("[WiFi] Saved credentials failed. WiFi disabled.");
+      Serial.println("[WiFi] Type 'reset' to clear credentials and restart BLE setup.");
+      Serial.println("[WiFi] RS-485 commands still work without WiFi!\n");
+    }
+  } else {
+    Serial.println("[WiFi] No saved credentials. WiFi/MQTT disabled.");
+    Serial.println("[WiFi] Type 'setup' to start Bluetooth WiFi setup.");
+    Serial.println("[WiFi] RS-485 commands still work without WiFi!\n");
   }
   
-  // NORMAL BOOT: Try connecting with saved credentials
-  if (!BLESetup::connectSaved()) {
-    // Saved credentials didn't work → start BLE provisioning again
-    Serial.println("[WiFi] Saved credentials failed. Starting Bluetooth setup...");
-    bleSetup.runProvisioning();
-    return;
-  }
-  
+  printMenu();
+}
+
+// =============================================
+// START WIFI SERVICES (mDNS, web server, MQTT)
+// =============================================
+void startWiFiServices() {
   // Setup mDNS (http://flexpool.local)
   if (MDNS.begin(MDNS_HOSTNAME)) {
     Serial.printf("[WiFi] mDNS started: http://%s.local\n", MDNS_HOSTNAME);
@@ -142,19 +156,17 @@ void setup() {
   
   // Start MQTT for remote control
   mqtt.begin();
-  
-  printMenu();
 }
 
 // =============================================
 // LOOP
 // =============================================
 void loop() {
-  // Handle web server requests
-  server.handleClient();
-  
-  // Handle MQTT messages and keepalive
-  mqtt.loop();
+  // Handle web server requests (only if WiFi connected)
+  if (wifiConnected) {
+    server.handleClient();
+    mqtt.loop();
+  }
   
   // Check for user input from Serial Monitor
   if (Serial.available()) {
@@ -178,7 +190,7 @@ void loop() {
       printPacketHex("RX", rxBuffer, rxLen);
       parseAndDisplayResponse(rxBuffer, rxLen);
       Serial.println("---------------------\n");
-      mqtt.publishStatus();  // Push update to cloud
+      if (wifiConnected) mqtt.publishStatus();  // Push update to cloud
       printMenu();
     }
   }
@@ -189,8 +201,8 @@ void loop() {
     lastAutoQuery = millis();
   }
   
-  // Keep WiFi alive
-  if (WiFi.status() != WL_CONNECTED) {
+  // Keep WiFi alive (only if we were connected before)
+  if (wifiConnected && WiFi.status() != WL_CONNECTED) {
     static unsigned long lastReconnect = 0;
     if (millis() - lastReconnect > 30000) {  // Try every 30 seconds
       Serial.println("[WiFi] Connection lost, reconnecting...");
@@ -378,6 +390,32 @@ void handleSerialCommand(String input) {
     BLESetup::clearCredentials();
     delay(500);
     ESP.restart();
+    return;
+  }
+  
+  if (input.equalsIgnoreCase("setup") || input.equalsIgnoreCase("wifi setup")) {
+    Serial.println("\n[WiFi] Starting Bluetooth setup...");
+    Serial.println("[WiFi] Open Chrome on PC or Android:");
+    Serial.println("[WiFi] https://taejoonest.github.io/FlexPool");
+    bleSetup.runProvisioning();  // Blocks, then reboots
+    return;
+  }
+  
+  if (input.equalsIgnoreCase("wifi")) {
+    if (wifiConnected) {
+      Serial.printf("[WiFi] Connected to \"%s\"\n", BLESetup::getSavedSSID().c_str());
+      Serial.printf("[WiFi] IP: %s  Signal: %d dBm\n", WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    } else if (BLESetup::hasSavedCredentials()) {
+      Serial.println("[WiFi] Not connected. Trying saved credentials...");
+      if (BLESetup::connectSaved()) {
+        wifiConnected = true;
+        startWiFiServices();
+      } else {
+        Serial.println("[WiFi] Failed. Type 'reset' to clear and 'setup' to reconfigure.");
+      }
+    } else {
+      Serial.println("[WiFi] No credentials saved. Type 'setup' to configure via Bluetooth.");
+    }
     return;
   }
   
@@ -842,10 +880,12 @@ void printMenu() {
   Serial.println("  11 - FULL: Set RPM and run");
   Serial.println("  12 - FULL: Stop pump");
   Serial.println("  --- WiFi ---");
+  Serial.println("  setup - Start Bluetooth WiFi setup");
+  Serial.println("  wifi  - Connect WiFi (if credentials saved)");
   Serial.println("  reset - Clear WiFi & restart Bluetooth setup");
   Serial.println("========================================");
   
-  if (WiFi.status() == WL_CONNECTED) {
+  if (wifiConnected && WiFi.status() == WL_CONNECTED) {
     Serial.printf("  WiFi: http://flexpool.local or http://%s\n",
                   WiFi.localIP().toString().c_str());
     Serial.printf("  Network: %s (%d dBm)\n",
