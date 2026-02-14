@@ -291,7 +291,7 @@ void setupWebServer() {
       "display:flex;justify-content:center;align-items:center;height:100vh'>"
       "<div style='text-align:center'><h1 style='color:#f59e0b'>WiFi Reset</h1>"
       "<p>Credentials cleared. ESP32 is restarting into Bluetooth setup mode.</p>"
-      "<p style='color:#64748b;margin-top:16px'>Open the FlexPool app to reconfigure via Bluetooth.</p>"
+      "<p style='color:#64748b;margin-top:16px'>Open Chrome on your PC or Android to reconfigure via Bluetooth.</p>"
       "</div></body></html>");
     delay(1000);
     BLESetup::clearCredentials();
@@ -374,7 +374,7 @@ void handleSerialCommand(String input) {
   // Special text commands
   if (input.equalsIgnoreCase("reset") || input.equalsIgnoreCase("wifi reset")) {
     Serial.println("\n[WiFi] Clearing saved credentials and restarting...");
-    Serial.println("[WiFi] BLE setup will start on next boot.");
+    Serial.println("[WiFi] BLE setup will start on next boot (use Chrome on PC or Android).");
     BLESetup::clearCredentials();
     delay(500);
     ESP.restart();

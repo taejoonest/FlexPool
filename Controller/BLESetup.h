@@ -6,12 +6,15 @@
  * ONE-TIME SETUP via Bluetooth:
  *   1. ESP32 boots with no WiFi credentials
  *   2. BLE turns ON, advertises as "FlexPool"
- *   3. User opens the app/webpage on phone
- *   4. Phone connects via BLE
- *   5. Phone sends WiFi SSID + password over BLE
+ *   3. User opens the FlexPool webpage (Chrome on PC or Android)
+ *   4. Browser connects via BLE
+ *   5. Browser sends WiFi SSID + password over BLE
  *   6. ESP32 saves credentials, connects to WiFi
  *   7. ESP32 sends back Device ID over BLE
  *   8. BLE turns OFF, ESP32 reboots into normal mode
+ * 
+ * NOTE: Web Bluetooth requires Chrome (Windows/Mac/Android).
+ *       iPhones do NOT support Web Bluetooth.
  * 
  * EVERY BOOT AFTER:
  *   - BLE never turns on
@@ -52,16 +55,16 @@
 // Service: the main FlexPool provisioning service
 #define SERVICE_UUID           "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 
-// Characteristic: phone WRITES WiFi credentials here
+// Characteristic: browser WRITES WiFi credentials here
 // Format: JSON string {"ssid":"MyWiFi","pass":"mypassword"}
 #define CHAR_WIFI_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-// Characteristic: ESP32 WRITES status/result here, phone reads/gets notified
+// Characteristic: ESP32 WRITES status/result here, browser reads/gets notified
 // Format: JSON string {"ok":true,"id":"A1B2C3","ip":"192.168.1.50"}
 //   or on failure:    {"ok":false,"error":"Connection failed"}
 #define CHAR_STATUS_UUID       "d1a7e0c2-4f3b-4b1e-9c5d-8a6f2b3e4d5c"
 
-// Characteristic: phone can WRITE "scan" to trigger WiFi network scan
+// Characteristic: browser can WRITE "scan" to trigger WiFi network scan
 // ESP32 responds on CHAR_STATUS with list of networks
 #define CHAR_SCAN_UUID         "e3b0c442-98fc-1c14-b39f-92f6bce1d587"
 
@@ -148,7 +151,7 @@ private:
     Serial.printf("[BLE] Credentials saved for \"%s\"\n", ssid.c_str());
   }
 
-  // ---- Send status back to phone via BLE ----
+  // ---- Send status back to browser via BLE ----
   void sendStatus(const String& json) {
     if (_charStatus && _deviceConnected) {
       _charStatus->setValue(json.c_str());
@@ -231,12 +234,12 @@ public:
   // =============================================
   void onConnect() {
     _deviceConnected = true;
-    Serial.println("[BLE] Phone connected!");
+    Serial.println("[BLE] Device connected!");
   }
   
   void onDisconnect() {
     _deviceConnected = false;
-    Serial.println("[BLE] Phone disconnected");
+    Serial.println("[BLE] Device disconnected");
     // Restart advertising so phone can reconnect
     if (_server && !_shouldRestart) {
       _server->startAdvertising();
@@ -332,8 +335,10 @@ public:
     Serial.println("  BLUETOOTH SETUP MODE");
     Serial.println("=============================================");
     Serial.println("  BLE is ON for 5 minutes.");
-    Serial.println("  Open the FlexPool app on your phone");
-    Serial.println("  and connect via Bluetooth.");
+    Serial.println("  On your PC or Android, open Chrome:");
+    Serial.println("  https://taejoonest.github.io/FlexPool");
+    Serial.println("  Then click 'Connect via Bluetooth'.");
+    Serial.println("  (iPhone NOT supported for setup)");
     Serial.println("=============================================\n");
 
     // Initialize BLE
@@ -406,7 +411,7 @@ public:
     advertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
     
-    Serial.printf("[BLE] Advertising as \"%s\" — waiting for phone...\n", BLE_DEVICE_NAME);
+    Serial.printf("[BLE] Advertising as \"%s\" — waiting for browser connection...\n", BLE_DEVICE_NAME);
     
     // ---- Main loop: wait for phone to connect and send credentials ----
     unsigned long startTime = millis();
@@ -426,7 +431,7 @@ public:
       // Periodic status message
       if (millis() - lastMsg > 15000) {
         unsigned long remaining = (BLE_TIMEOUT_MS - (millis() - startTime)) / 1000;
-        Serial.printf("[BLE] Waiting for phone... (%lu seconds remaining)\n", remaining);
+        Serial.printf("[BLE] Waiting for connection... (%lu seconds remaining)\n", remaining);
         lastMsg = millis();
       }
       
