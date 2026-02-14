@@ -429,17 +429,35 @@
     let topicStatus = '';
 
     // =============================================
-    // INIT
+    // INIT - Auto-detect Device ID from URL, then localStorage
     // =============================================
     window.addEventListener('load', () => {
       loadSettings();
-      // Check for saved device ID
+
+      // Priority 1: Check URL parameter (e.g. ?id=A1B2C3)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlId = urlParams.get('id');
+
+      if (urlId && urlId.length >= 4) {
+        // ID is in the URL — connect automatically, save it
+        DEVICE_ID = urlId.toUpperCase();
+        localStorage.setItem('flexpool_device_id', DEVICE_ID);
+        document.getElementById('deviceSection').classList.add('hide');
+        addLog('Device ID (from URL): ' + DEVICE_ID, null);
+        connectMQTT(DEVICE_ID);
+        return;
+      }
+
+      // Priority 2: Check localStorage (previously saved)
       const saved = localStorage.getItem('flexpool_device_id');
       if (saved) {
         DEVICE_ID = saved;
-        addLog('Using saved Device ID: ' + DEVICE_ID, null);
+        addLog('Device ID (saved): ' + DEVICE_ID, null);
         connectMQTT(DEVICE_ID);
+        return;
       }
+
+      // Priority 3: No ID found — show input (first time only)
     });
 
     function manualConnect() {

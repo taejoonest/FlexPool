@@ -191,7 +191,13 @@ public:
     Serial.printf( "[MQTT] Broker:    %s:%d\n", MQTT_BROKER, MQTT_PORT);
     Serial.printf( "[MQTT] Commands:  %s\n", _topicCmd.c_str());
     Serial.printf( "[MQTT] Status:    %s\n", _topicStatus.c_str());
-    Serial.println("[MQTT] ================================\n");
+    Serial.println("[MQTT] ================================");
+    Serial.println();
+    Serial.println("════════════════════════════════════════════════");
+    Serial.println("  BOOKMARK THIS URL FOR REMOTE CONTROL:");
+    Serial.printf( "  https://taejoonest.github.io/FlexPool?id=%s\n", _deviceId.c_str());
+    Serial.println("════════════════════════════════════════════════");
+    Serial.println();
     
     connect();
   }
