@@ -1,0 +1,15 @@
+# Node modules (huge, not needed)
+nodejs-poolController/node_modules/
+nodejs-poolController/dist/
+
+# PlatformIO build files
+.pio/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Third-party / cloned repos (not our code)
+nodejs-poolController/
+_reference_pavsp/
