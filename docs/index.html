@@ -12,76 +12,21 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a; color: #e2e8f0;
-      min-height: 100vh; padding: 16px;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 16px;
     }
-    h1 { text-align: center; font-size: 1.5rem; padding: 16px 0 4px; color: #38bdf8; letter-spacing: 1px; }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      padding: 16px 0 4px;
+      color: #38bdf8;
+      letter-spacing: 1px;
+    }
     h1 span { color: #94a3b8; font-weight: 300; font-size: 0.9rem; display: block; }
 
-    /* ====== SCREENS (setup vs control) ====== */
-    .screen { display: none; }
-    .screen.active { display: block; }
-
-    /* ====== SETUP SCREEN ====== */
-    .setup-card {
-      background: #1e293b; border-radius: 20px; padding: 32px;
-      max-width: 420px; margin: 20px auto; border: 1px solid #334155;
-      text-align: center;
-    }
-    .setup-icon { font-size: 3rem; margin-bottom: 16px; }
-    .setup-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
-    .setup-desc { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; margin-bottom: 24px; }
-    .btn-ble {
-      width: 100%; padding: 16px; border: none; border-radius: 14px;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: white; font-size: 1.1rem; font-weight: 700; cursor: pointer;
-      letter-spacing: 0.5px;
-    }
-    .btn-ble:active { transform: scale(0.97); }
-    .btn-ble:disabled { opacity: 0.5; cursor: not-allowed; }
-    .setup-status {
-      margin-top: 16px; padding: 12px; border-radius: 10px;
-      font-size: 0.85rem; display: none;
-    }
-    .setup-status.show { display: block; }
-    .setup-status.info { background: #1e3a5f; color: #7dd3fc; }
-    .setup-status.success { background: #052e16; color: #4ade80; }
-    .setup-status.error { background: #450a0a; color: #f87171; }
-
-    /* WiFi form (shown after BLE connects) */
-    .wifi-form { display: none; text-align: left; margin-top: 20px; }
-    .wifi-form.show { display: block; }
-    .wifi-form label { display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 6px; margin-top: 14px; }
-    .wifi-form input {
-      width: 100%; padding: 12px; border-radius: 10px;
-      border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 1rem;
-    }
-    .wifi-form input:focus { border-color: #38bdf8; outline: none; }
-    .network-list { margin-top: 8px; max-height: 200px; overflow-y: auto; }
-    .network-item {
-      background: #0f172a; border-radius: 8px; padding: 10px 14px;
-      margin-top: 6px; cursor: pointer; border: 1px solid #334155;
-      font-size: 0.9rem; display: flex; justify-content: space-between;
-    }
-    .network-item:active { border-color: #38bdf8; }
-    .network-rssi { color: #64748b; font-size: 0.75rem; }
-    .btn-send-wifi {
-      width: 100%; padding: 14px; border: none; border-radius: 12px;
-      background: #16a34a; color: white; font-size: 1rem; font-weight: 600;
-      cursor: pointer; margin-top: 20px;
-    }
-    .btn-send-wifi:active { background: #15803d; }
-    .btn-send-wifi:disabled { opacity: 0.5; cursor: not-allowed; }
-    .setup-footer {
-      color: #475569; font-size: 0.7rem; margin-top: 16px; text-align: center;
-    }
-    .btn-skip {
-      background: transparent; border: 1px solid #334155; color: #64748b;
-      padding: 10px; border-radius: 10px; font-size: 0.8rem; cursor: pointer;
-      width: 100%; margin-top: 12px;
-    }
-
-    /* ====== CONTROL SCREEN ====== */
+    /* Connection banner */
     .conn-bar {
       display: flex; justify-content: center; align-items: center; gap: 8px;
       padding: 8px; margin-bottom: 12px; border-radius: 10px;
@@ -95,6 +40,31 @@
     .conn-bar.connecting .conn-dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
     .conn-bar.disconnected .conn-dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
 
+    /* Device ID input */
+    .device-section {
+      background: #1e293b; border-radius: 12px; padding: 14px;
+      margin-bottom: 12px; border: 1px solid #334155;
+    }
+    .device-section.hide { display: none; }
+    .device-section label { font-size: 0.85rem; color: #94a3b8; display: block; margin-bottom: 6px; }
+    .device-section .hint { font-size: 0.7rem; color: #64748b; margin-top: 6px; }
+    .device-row { display: flex; gap: 8px; }
+    .device-row input {
+      flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #475569;
+      background: #0f172a; color: #e2e8f0; font-size: 1.1rem;
+      font-family: 'Courier New', monospace; letter-spacing: 3px; text-transform: uppercase;
+    }
+    .device-row button {
+      padding: 12px 20px; border-radius: 8px; border: none;
+      background: #2563eb; color: white; font-weight: 600; cursor: pointer; font-size: 1rem;
+    }
+    .device-row button:active { background: #1d4ed8; }
+    .btn-disconnect {
+      margin-top: 8px; padding: 6px 12px; border-radius: 6px; border: 1px solid #475569;
+      background: transparent; color: #94a3b8; font-size: 0.75rem; cursor: pointer;
+    }
+
+    /* Status card */
     .status-card {
       background: #1e293b; border-radius: 16px; padding: 20px;
       margin-bottom: 16px; border: 1px solid #334155;
@@ -103,23 +73,43 @@
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 16px;
     }
-    .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+    .status-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      display: inline-block; margin-right: 8px;
+    }
     .dot-running { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
     .dot-stopped { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
     .dot-unknown { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
     .status-label { font-size: 1.1rem; font-weight: 600; }
-    .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .stat-item { background: #0f172a; border-radius: 10px; padding: 12px; text-align: center; }
+    .status-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    .stat-item {
+      background: #0f172a; border-radius: 10px; padding: 12px; text-align: center;
+    }
     .stat-value { font-size: 1.6rem; font-weight: 700; color: #38bdf8; }
-    .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+    .stat-label {
+      font-size: 0.75rem; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
+    }
 
-    .section-title { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px; }
+    .section-title {
+      font-size: 0.8rem; color: #64748b;
+      text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px;
+    }
 
-    .speed-section { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
-    .speed-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    /* ======== SPEED BUTTONS ======== */
+    .speed-section {
+      background: #1e293b; border-radius: 16px; padding: 20px;
+      margin-bottom: 16px; border: 1px solid #334155;
+    }
+    .speed-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
     .speed-btn {
       border: none; border-radius: 14px; padding: 20px 8px;
-      cursor: pointer; transition: all 0.15s; color: white; text-align: center;
+      cursor: pointer; transition: all 0.15s; color: white;
+      text-align: center; position: relative; overflow: hidden;
     }
     .speed-btn:active { transform: scale(0.96); }
     .speed-btn.active { box-shadow: 0 0 0 3px #38bdf8, 0 0 20px rgba(56,189,248,0.3); }
@@ -131,6 +121,7 @@
     .speed-3 { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
     .speed-4 { background: linear-gradient(135deg, #c2410c, #ea580c); }
 
+    /* STOP button */
     .stop-section { margin-bottom: 16px; }
     .btn-bigstop {
       width: 100%; border: none; border-radius: 14px; padding: 18px;
@@ -141,13 +132,31 @@
     .btn-bigstop:active { transform: scale(0.97); }
     .btn-bigstop:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .rpm-section { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
-    .rpm-display { text-align: center; font-size: 2.5rem; font-weight: 700; color: #38bdf8; margin: 8px 0; }
+    /* Custom RPM */
+    .rpm-section {
+      background: #1e293b; border-radius: 16px; padding: 20px;
+      margin-bottom: 16px; border: 1px solid #334155;
+    }
+    .rpm-display {
+      text-align: center; font-size: 2.5rem; font-weight: 700;
+      color: #38bdf8; margin: 8px 0;
+    }
     .rpm-display span { font-size: 1rem; color: #94a3b8; }
-    input[type="range"] { width: 100%; height: 8px; -webkit-appearance: none; background: #334155; border-radius: 4px; outline: none; margin: 12px 0; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #38bdf8; cursor: pointer; }
-    .rpm-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-    .rpm-preset { border: 1px solid #475569; background: transparent; color: #e2e8f0; border-radius: 8px; padding: 8px 4px; font-size: 0.8rem; cursor: pointer; }
+    input[type="range"] {
+      width: 100%; height: 8px; -webkit-appearance: none;
+      background: #334155; border-radius: 4px; outline: none; margin: 12px 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 28px; height: 28px;
+      border-radius: 50%; background: #38bdf8; cursor: pointer;
+    }
+    .rpm-presets {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;
+    }
+    .rpm-preset {
+      border: 1px solid #475569; background: transparent; color: #e2e8f0;
+      border-radius: 8px; padding: 8px 4px; font-size: 0.8rem; cursor: pointer;
+    }
     .rpm-preset:active { background: #334155; }
     .btn-setcustom {
       width: 100%; margin-top: 12px; border: none; border-radius: 12px;
@@ -157,210 +166,258 @@
     .btn-setcustom:active { transform: scale(0.97); }
     .btn-setcustom:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* Buttons */
     .btn-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
     .btn {
       border: none; border-radius: 12px; padding: 14px 8px; font-size: 0.95rem;
       font-weight: 600; cursor: pointer; transition: all 0.15s; color: white; text-align: center;
     }
     .btn:active { transform: scale(0.96); }
-    .btn-start { background: #16a34a; } .btn-stop { background: #dc2626; }
-    .btn-remote { background: #2563eb; } .btn-local { background: #7c3aed; }
-    .btn-query { background: #0891b2; } .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-start  { background: #16a34a; }
+    .btn-stop   { background: #dc2626; }
+    .btn-remote { background: #2563eb; }
+    .btn-local  { background: #7c3aed; }
+    .btn-query  { background: #0891b2; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* Collapsible advanced */
     .advanced-toggle {
       width: 100%; background: #1e293b; border: 1px solid #334155;
       border-radius: 12px; padding: 12px; color: #64748b;
-      font-size: 0.85rem; cursor: pointer; text-align: center; margin-bottom: 12px;
+      font-size: 0.85rem; cursor: pointer; text-align: center;
+      margin-bottom: 12px;
     }
     .advanced-toggle:active { background: #334155; }
     .advanced-panel { display: none; }
     .advanced-panel.show { display: block; }
 
-    .settings-section { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
-    .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #334155; }
+    /* Settings */
+    .settings-section {
+      background: #1e293b; border-radius: 16px; padding: 20px;
+      margin-bottom: 16px; border: 1px solid #334155;
+    }
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid #334155;
+    }
     .setting-row:last-child { border-bottom: none; }
     .setting-label { font-size: 0.9rem; color: #94a3b8; }
-    .setting-input { width: 90px; padding: 8px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #38bdf8; font-size: 1rem; text-align: center; font-weight: 600; }
-    .btn-save-settings { width: 100%; margin-top: 12px; border: none; border-radius: 12px; padding: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; background: #475569; color: white; }
+    .setting-input {
+      width: 90px; padding: 8px; border-radius: 8px; border: 1px solid #475569;
+      background: #0f172a; color: #38bdf8; font-size: 1rem;
+      text-align: center; font-weight: 600;
+    }
+    .btn-save-settings {
+      width: 100%; margin-top: 12px; border: none; border-radius: 12px;
+      padding: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      background: #475569; color: white;
+    }
 
-    .log-section { background: #1e293b; border-radius: 16px; padding: 16px; margin-top: 16px; border: 1px solid #334155; }
-    .log-box { background: #0f172a; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.75rem; color: #94a3b8; line-height: 1.5; }
+    /* Log */
+    .log-section {
+      background: #1e293b; border-radius: 16px; padding: 16px;
+      margin-top: 16px; border: 1px solid #334155;
+    }
+    .log-box {
+      background: #0f172a; border-radius: 8px; padding: 10px;
+      max-height: 200px; overflow-y: auto;
+      font-family: 'Courier New', monospace; font-size: 0.75rem;
+      color: #94a3b8; line-height: 1.5;
+    }
     .log-entry { border-bottom: 1px solid #1e293b; padding: 2px 0; }
-    .log-ok { color: #22c55e; } .log-err { color: #ef4444; }
+    .log-ok { color: #22c55e; }
+    .log-err { color: #ef4444; }
 
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #334155; color: #e2e8f0; padding: 12px 24px; border-radius: 12px; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #334155; color: #e2e8f0; padding: 12px 24px;
+      border-radius: 12px; font-size: 0.9rem; opacity: 0;
+      transition: opacity 0.3s; pointer-events: none; z-index: 100;
+    }
     .toast.show { opacity: 1; }
-    .info-bar { text-align: center; color: #475569; font-size: 0.7rem; margin-top: 12px; line-height: 1.6; }
+    .info-bar {
+      text-align: center; color: #475569; font-size: 0.7rem; margin-top: 12px; line-height: 1.6;
+    }
   </style>
 </head>
 <body>
   <h1>FlexPool <span>Pentair Pump Controller</span></h1>
 
-  <!-- ========================================== -->
-  <!-- SCREEN 1: BLUETOOTH SETUP (first time)     -->
-  <!-- ========================================== -->
-  <div class="screen" id="setupScreen">
-    <div class="setup-card">
-      <div class="setup-icon">&#128225;</div>
-      <div class="setup-title">Setup Your Controller</div>
-      <div class="setup-desc">
-        Connect to your FlexPool ESP32 via Bluetooth to set up WiFi.
-        This only needs to be done once.
-      </div>
-      <button class="btn-ble" id="btnBLE" onclick="startBLESetup()">
-        Connect via Bluetooth
-      </button>
+  <!-- MQTT CONNECTION STATUS -->
+  <div class="conn-bar disconnected" id="connBar">
+    <div class="conn-dot"></div>
+    <span id="connLabel">Enter Device ID to connect</span>
+  </div>
 
-      <div class="setup-status" id="setupStatus"></div>
-
-      <!-- WiFi form (appears after BLE connects) -->
-      <div class="wifi-form" id="wifiForm">
-        <label>Available WiFi Networks:</label>
-        <div class="network-list" id="networkList">
-          <div class="network-item" style="color:#64748b; justify-content:center;">Scanning...</div>
-        </div>
-
-        <label for="wifiSSID">WiFi Network Name</label>
-        <input type="text" id="wifiSSID" placeholder="Your WiFi name">
-
-        <label for="wifiPass">WiFi Password</label>
-        <input type="password" id="wifiPass" placeholder="Your WiFi password">
-
-        <button class="btn-send-wifi" id="btnSendWifi" onclick="sendWiFiCredentials()">
-          Connect ESP32 to WiFi
-        </button>
-      </div>
-
-      <div class="setup-footer">
-        Credentials are sent directly to the ESP32 via Bluetooth.<br>
-        They are never sent to any server.
-      </div>
-
-      <button class="btn-skip" onclick="showManualEntry()">
-        Already set up? Enter Device ID manually
-      </button>
+  <!-- DEVICE ID INPUT -->
+  <div class="device-section" id="deviceSection">
+    <label>Enter your Device ID to connect:</label>
+    <div class="device-row">
+      <input type="text" id="deviceInput" placeholder="e.g. A1B2C3" maxlength="6">
+      <button onclick="manualConnect()">Connect</button>
     </div>
+    <div class="hint">Find your Device ID in the Arduino Serial Monitor after uploading Controller.ino</div>
+  </div>
 
-    <!-- Manual ID entry (hidden by default) -->
-    <div class="setup-card" id="manualSection" style="display:none;">
-      <div class="setup-title">Manual Connection</div>
-      <div class="setup-desc">If you've already set up your ESP32, enter the Device ID from the Serial Monitor.</div>
-      <input type="text" id="manualDeviceInput" placeholder="e.g. A1B2C3" maxlength="6"
-             style="width:100%;padding:12px;border-radius:10px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:1.1rem;font-family:'Courier New',monospace;letter-spacing:3px;text-transform:uppercase;text-align:center;margin-bottom:12px;">
-      <button class="btn-ble" style="background:#2563eb" onclick="manualConnect()">Connect</button>
+  <!-- CONNECTED DEVICE BAR (shown after connecting) -->
+  <div class="device-section hide" id="connectedSection">
+    <label>Connected to device: <strong id="connDeviceId"></strong></label>
+    <button class="btn-disconnect" onclick="disconnect()">Disconnect / Change Device</button>
+  </div>
+
+  <!-- STATUS CARD -->
+  <div class="status-card">
+    <div class="status-header">
+      <div>
+        <span class="status-dot dot-unknown" id="statusDot"></span>
+        <span class="status-label" id="statusLabel">Waiting for data...</span>
+      </div>
+      <button class="btn btn-query" style="padding:8px 16px; font-size:0.8rem;" onclick="sendCmd('query')" id="btnRefresh" disabled>Refresh</button>
+    </div>
+    <div class="status-grid">
+      <div class="stat-item">
+        <div class="stat-value" id="rpmVal">--</div>
+        <div class="stat-label">RPM</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="wattsVal">--</div>
+        <div class="stat-label">Watts</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="gpmVal">--</div>
+        <div class="stat-label">GPM</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="modeVal">--</div>
+        <div class="stat-label">Mode</div>
+      </div>
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- SCREEN 2: CONTROL PANEL (after setup)      -->
-  <!-- ========================================== -->
-  <div class="screen" id="controlScreen">
-
-    <div class="conn-bar disconnected" id="connBar">
-      <div class="conn-dot"></div>
-      <span id="connLabel">Connecting...</span>
+  <!-- SPEED BUTTONS -->
+  <div class="speed-section">
+    <div class="section-title" style="margin-top:0">Select Speed</div>
+    <div class="speed-grid">
+      <button class="speed-btn speed-1" id="speedBtn1" onclick="setSpeed(1)" disabled>
+        <span class="speed-name">Speed 1</span>
+        <span class="speed-rpm" id="speedLabel1">750 RPM</span>
+      </button>
+      <button class="speed-btn speed-2" id="speedBtn2" onclick="setSpeed(2)" disabled>
+        <span class="speed-name">Speed 2</span>
+        <span class="speed-rpm" id="speedLabel2">1500 RPM</span>
+      </button>
+      <button class="speed-btn speed-3" id="speedBtn3" onclick="setSpeed(3)" disabled>
+        <span class="speed-name">Speed 3</span>
+        <span class="speed-rpm" id="speedLabel3">2350 RPM</span>
+      </button>
+      <button class="speed-btn speed-4" id="speedBtn4" onclick="setSpeed(4)" disabled>
+        <span class="speed-name">Speed 4</span>
+        <span class="speed-rpm" id="speedLabel4">3110 RPM</span>
+      </button>
     </div>
-
-    <div class="status-card">
-      <div class="status-header">
-        <div>
-          <span class="status-dot dot-unknown" id="statusDot"></span>
-          <span class="status-label" id="statusLabel">Waiting for data...</span>
-        </div>
-        <button class="btn btn-query" style="padding:8px 16px;font-size:0.8rem;" onclick="sendCmd('query')" id="btnRefresh" disabled>Refresh</button>
-      </div>
-      <div class="status-grid">
-        <div class="stat-item"><div class="stat-value" id="rpmVal">--</div><div class="stat-label">RPM</div></div>
-        <div class="stat-item"><div class="stat-value" id="wattsVal">--</div><div class="stat-label">Watts</div></div>
-        <div class="stat-item"><div class="stat-value" id="gpmVal">--</div><div class="stat-label">GPM</div></div>
-        <div class="stat-item"><div class="stat-value" id="modeVal">--</div><div class="stat-label">Mode</div></div>
-      </div>
-    </div>
-
-    <div class="speed-section">
-      <div class="section-title" style="margin-top:0">Select Speed</div>
-      <div class="speed-grid">
-        <button class="speed-btn speed-1" id="speedBtn1" onclick="setSpeed(1)" disabled><span class="speed-name">Speed 1</span><span class="speed-rpm" id="speedLabel1">750 RPM</span></button>
-        <button class="speed-btn speed-2" id="speedBtn2" onclick="setSpeed(2)" disabled><span class="speed-name">Speed 2</span><span class="speed-rpm" id="speedLabel2">1500 RPM</span></button>
-        <button class="speed-btn speed-3" id="speedBtn3" onclick="setSpeed(3)" disabled><span class="speed-name">Speed 3</span><span class="speed-rpm" id="speedLabel3">2350 RPM</span></button>
-        <button class="speed-btn speed-4" id="speedBtn4" onclick="setSpeed(4)" disabled><span class="speed-name">Speed 4</span><span class="speed-rpm" id="speedLabel4">3110 RPM</span></button>
-      </div>
-    </div>
-
-    <div class="stop-section">
-      <button class="btn-bigstop" id="btnStop" onclick="sendCmd('fullstop')" disabled>STOP PUMP</button>
-    </div>
-
-    <div class="rpm-section">
-      <div class="section-title" style="margin-top:0">Custom RPM</div>
-      <div class="rpm-display"><span id="rpmTarget">1000</span> <span>RPM</span></div>
-      <input type="range" id="rpmSlider" min="450" max="3450" step="50" value="1000" oninput="document.getElementById('rpmTarget').textContent=this.value">
-      <div class="rpm-presets">
-        <button class="rpm-preset" onclick="setSlider(600)">600</button>
-        <button class="rpm-preset" onclick="setSlider(1100)">1100</button>
-        <button class="rpm-preset" onclick="setSlider(2000)">2000</button>
-        <button class="rpm-preset" onclick="setSlider(3000)">3000</button>
-      </div>
-      <button class="btn-setcustom" id="btnCustom" onclick="fullStartCustom()" disabled>Start at Custom RPM</button>
-    </div>
-
-    <button class="advanced-toggle" onclick="toggleAdvanced()">&#9660; Advanced / Manual Commands</button>
-    <div class="advanced-panel" id="advancedPanel">
-      <div class="settings-section">
-        <div class="section-title" style="margin-top:0">Speed Settings (RPM)</div>
-        <div class="setting-row"><span class="setting-label">Speed 1</span><input type="number" class="setting-input" id="cfg1" min="450" max="3450" step="50" value="750"></div>
-        <div class="setting-row"><span class="setting-label">Speed 2</span><input type="number" class="setting-input" id="cfg2" min="450" max="3450" step="50" value="1500"></div>
-        <div class="setting-row"><span class="setting-label">Speed 3</span><input type="number" class="setting-input" id="cfg3" min="450" max="3450" step="50" value="2350"></div>
-        <div class="setting-row"><span class="setting-label">Speed 4</span><input type="number" class="setting-input" id="cfg4" min="450" max="3450" step="50" value="3110"></div>
-        <button class="btn-save-settings" onclick="saveSettings()">Save Speed Settings</button>
-      </div>
-      <div class="section-title">Manual Commands</div>
-      <div class="btn-row">
-        <button class="btn btn-start" onclick="sendCmd('start')">Start Motor</button>
-        <button class="btn btn-stop" onclick="sendCmd('stop')">Stop Motor</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-remote" onclick="sendCmd('remote')">Remote Control</button>
-        <button class="btn btn-local" onclick="sendCmd('local')">Local Control</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-query" onclick="sendCmd('query')">Query Status</button>
-        <button class="btn" style="background:#475569" onclick="setRPMOnly()">Set RPM Only</button>
-      </div>
-      <div style="margin-top:16px">
-        <button class="btn-skip" onclick="forgetDevice()">Forget Device &amp; Re-setup</button>
-      </div>
-    </div>
-
-    <div class="log-section">
-      <div class="section-title" style="margin-top:0">Activity Log</div>
-      <div class="log-box" id="logBox"></div>
-    </div>
-    <div class="info-bar" id="infoBar"></div>
   </div>
 
+  <!-- STOP BUTTON -->
+  <div class="stop-section">
+    <button class="btn-bigstop" id="btnStop" onclick="sendCmd('fullstop')" disabled>STOP PUMP</button>
+  </div>
+
+  <!-- CUSTOM RPM -->
+  <div class="rpm-section">
+    <div class="section-title" style="margin-top:0">Custom RPM</div>
+    <div class="rpm-display"><span id="rpmTarget">1000</span> <span>RPM</span></div>
+    <input type="range" id="rpmSlider" min="450" max="3450" step="50" value="1000"
+           oninput="document.getElementById('rpmTarget').textContent=this.value">
+    <div class="rpm-presets">
+      <button class="rpm-preset" onclick="setSlider(600)">600</button>
+      <button class="rpm-preset" onclick="setSlider(1100)">1100</button>
+      <button class="rpm-preset" onclick="setSlider(2000)">2000</button>
+      <button class="rpm-preset" onclick="setSlider(3000)">3000</button>
+    </div>
+    <button class="btn-setcustom" id="btnCustom" onclick="fullStartCustom()" disabled>Start at Custom RPM</button>
+  </div>
+
+  <!-- ADVANCED COMMANDS -->
+  <button class="advanced-toggle" onclick="toggleAdvanced()">
+    &#9660; Advanced / Manual Commands
+  </button>
+  <div class="advanced-panel" id="advancedPanel">
+    <div class="settings-section">
+      <div class="section-title" style="margin-top:0">Speed Settings (RPM)</div>
+      <div class="setting-row">
+        <span class="setting-label">Speed 1</span>
+        <input type="number" class="setting-input" id="cfg1" min="450" max="3450" step="50" value="750">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Speed 2</span>
+        <input type="number" class="setting-input" id="cfg2" min="450" max="3450" step="50" value="1500">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Speed 3</span>
+        <input type="number" class="setting-input" id="cfg3" min="450" max="3450" step="50" value="2350">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Speed 4</span>
+        <input type="number" class="setting-input" id="cfg4" min="450" max="3450" step="50" value="3110">
+      </div>
+      <button class="btn-save-settings" onclick="saveSettings()">Save Speed Settings</button>
+    </div>
+    <div class="section-title">Manual Commands</div>
+    <div class="btn-row">
+      <button class="btn btn-start"  onclick="sendCmd('start')">Start Motor</button>
+      <button class="btn btn-stop"   onclick="sendCmd('stop')">Stop Motor</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-remote" onclick="sendCmd('remote')">Remote Control</button>
+      <button class="btn btn-local"  onclick="sendCmd('local')">Local Control</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-query" onclick="sendCmd('query')">Query Status</button>
+      <button class="btn" style="background:#475569" onclick="setRPMOnly()">Set RPM Only</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-section">
+    <div class="section-title" style="margin-top:0">Activity Log</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <div class="info-bar" id="infoBar"></div>
   <div class="toast" id="toast"></div>
 
   <script>
-    // =============================================
-    // BLE UUIDs (must match BLESetup.h on ESP32)
-    // =============================================
-    const BLE_SERVICE    = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
-    const BLE_CHAR_WIFI  = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
-    const BLE_CHAR_STATUS= 'd1a7e0c2-4f3b-4b1e-9c5d-8a6f2b3e4d5c';
-    const BLE_CHAR_SCAN  = 'e3b0c442-98fc-1c14-b39f-92f6bce1d587';
-
-    let bleDevice = null;
-    let bleCharWifi = null;
-    let bleCharStatus = null;
-    let bleCharScan = null;
-
     // =============================================
     // SPEED PRESETS
     // =============================================
     const DEFAULT_SPEEDS = [750, 1500, 2350, 3110];
     let speeds = [...DEFAULT_SPEEDS];
     let activeSpeed = 0;
+
+    function loadSettings() {
+      const saved = localStorage.getItem('flexpool_speeds');
+      if (saved) {
+        try {
+          const arr = JSON.parse(saved);
+          if (arr.length === 4) speeds = arr;
+        } catch(e) {}
+      }
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('speedLabel' + i).textContent = speeds[i-1] + ' RPM';
+        document.getElementById('cfg' + i).value = speeds[i-1];
+      }
+    }
+
+    function saveSettings() {
+      for (let i = 1; i <= 4; i++) {
+        const val = parseInt(document.getElementById('cfg' + i).value);
+        if (val >= 450 && val <= 3450) speeds[i-1] = val;
+      }
+      localStorage.setItem('flexpool_speeds', JSON.stringify(speeds));
+      loadSettings();
+      showToast('Speed settings saved!');
+      addLog('Speed settings: ' + speeds.join(', ') + ' RPM', true);
+    }
 
     // =============================================
     // MQTT
@@ -372,227 +429,42 @@
     let topicStatus = '';
 
     // =============================================
-    // INIT — decide which screen to show
+    // INIT
     // =============================================
     window.addEventListener('load', () => {
       loadSettings();
-
-      // Check URL param first
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlId = urlParams.get('id');
-      if (urlId && urlId.length >= 4) {
-        DEVICE_ID = urlId.toUpperCase();
-        localStorage.setItem('flexpool_device_id', DEVICE_ID);
-        showControlScreen();
-        connectMQTT(DEVICE_ID);
-        return;
-      }
-
-      // Check saved Device ID
+      // Check for saved device ID
       const saved = localStorage.getItem('flexpool_device_id');
       if (saved) {
         DEVICE_ID = saved;
-        showControlScreen();
+        addLog('Using saved Device ID: ' + DEVICE_ID, null);
         connectMQTT(DEVICE_ID);
-        return;
       }
-
-      // No device ID — show setup screen
-      showSetupScreen();
     });
 
-    function showSetupScreen() {
-      document.getElementById('setupScreen').classList.add('active');
-      document.getElementById('controlScreen').classList.remove('active');
-    }
-
-    function showControlScreen() {
-      document.getElementById('setupScreen').classList.remove('active');
-      document.getElementById('controlScreen').classList.add('active');
-    }
-
-    function showManualEntry() {
-      document.getElementById('manualSection').style.display = 'block';
-    }
-
     function manualConnect() {
-      const id = document.getElementById('manualDeviceInput').value.trim().toUpperCase();
-      if (id.length < 4) { showToast('Enter a valid Device ID'); return; }
+      const id = document.getElementById('deviceInput').value.trim().toUpperCase();
+      if (id.length < 4) {
+        showToast('Enter a valid Device ID (from Serial Monitor)');
+        return;
+      }
       DEVICE_ID = id;
       localStorage.setItem('flexpool_device_id', id);
-      showControlScreen();
       connectMQTT(id);
     }
 
-    function forgetDevice() {
-      if (mqttClient) { mqttClient.end(); mqttClient = null; }
+    function disconnect() {
+      if (mqttClient) {
+        mqttClient.end();
+        mqttClient = null;
+      }
       DEVICE_ID = '';
       localStorage.removeItem('flexpool_device_id');
-      showSetupScreen();
-      showToast('Device forgotten');
-    }
-
-    // =============================================
-    // BLUETOOTH SETUP
-    // =============================================
-    async function startBLESetup() {
-      const btn = document.getElementById('btnBLE');
-      const status = document.getElementById('setupStatus');
-
-      // Check if Web Bluetooth is available
-      if (!navigator.bluetooth) {
-        setSetupStatus('error', 'Bluetooth not available in this browser. Use Chrome on Android or desktop.');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = 'Searching...';
-      setSetupStatus('info', 'Looking for FlexPool device...');
-
-      try {
-        // Step 1: Scan for the ESP32
-        bleDevice = await navigator.bluetooth.requestDevice({
-          filters: [{ name: 'FlexPool' }],
-          optionalServices: [BLE_SERVICE]
-        });
-
-        setSetupStatus('info', 'Connecting to ' + bleDevice.name + '...');
-
-        // Step 2: Connect to GATT server
-        const server = await bleDevice.gatt.connect();
-        const service = await server.getPrimaryService(BLE_SERVICE);
-
-        // Step 3: Get characteristics
-        bleCharWifi   = await service.getCharacteristic(BLE_CHAR_WIFI);
-        bleCharStatus = await service.getCharacteristic(BLE_CHAR_STATUS);
-        bleCharScan   = await service.getCharacteristic(BLE_CHAR_SCAN);
-
-        // Step 4: Listen for status notifications
-        await bleCharStatus.startNotifications();
-        bleCharStatus.addEventListener('characteristicvaluechanged', handleBLEStatus);
-
-        // Step 5: Read initial status (contains device ID)
-        const initValue = await bleCharStatus.readValue();
-        const initStr = new TextDecoder().decode(initValue);
-        try {
-          const initData = JSON.parse(initStr);
-          if (initData.id) {
-            setSetupStatus('info', 'Connected! Device ID: ' + initData.id);
-          }
-        } catch(e) {}
-
-        setSetupStatus('success', 'Connected to FlexPool! Now set up WiFi below.');
-        btn.textContent = 'Connected!';
-
-        // Show WiFi form
-        document.getElementById('wifiForm').classList.add('show');
-
-        // Step 6: Request WiFi scan
-        const scanCmd = new TextEncoder().encode('scan');
-        await bleCharScan.writeValue(scanCmd);
-        setSetupStatus('info', 'Scanning for WiFi networks...');
-
-      } catch (err) {
-        console.error('BLE error:', err);
-        btn.disabled = false;
-        btn.textContent = 'Connect via Bluetooth';
-
-        if (err.name === 'NotFoundError') {
-          setSetupStatus('error', 'No FlexPool device found. Make sure your ESP32 is powered on and in setup mode.');
-        } else if (err.name === 'SecurityError') {
-          setSetupStatus('error', 'Bluetooth permission denied. Allow Bluetooth access and try again.');
-        } else {
-          setSetupStatus('error', 'Error: ' + err.message);
-        }
-      }
-    }
-
-    // Handle BLE status notifications from ESP32
-    function handleBLEStatus(event) {
-      const value = new TextDecoder().decode(event.target.value);
-      console.log('BLE status:', value);
-
-      try {
-        const data = JSON.parse(value);
-
-        // WiFi scan results
-        if (data.networks) {
-          const list = document.getElementById('networkList');
-          list.innerHTML = '';
-          data.networks.forEach(n => {
-            const div = document.createElement('div');
-            div.className = 'network-item';
-            div.onclick = () => {
-              document.getElementById('wifiSSID').value = n.s;
-              document.getElementById('wifiPass').focus();
-            };
-            div.innerHTML = '<span>' + n.s + '</span><span class="network-rssi">' + n.r + ' dBm</span>';
-            list.appendChild(div);
-          });
-          setSetupStatus('info', 'Found ' + data.networks.length + ' networks. Select one and enter password.');
-        }
-
-        // Connection result
-        if (data.ok === true) {
-          DEVICE_ID = data.id;
-          localStorage.setItem('flexpool_device_id', DEVICE_ID);
-          setSetupStatus('success', 'WiFi connected! Device ID: ' + data.id + ', IP: ' + data.ip);
-
-          // Disconnect BLE
-          if (bleDevice && bleDevice.gatt.connected) {
-            bleDevice.gatt.disconnect();
-          }
-
-          // Switch to control screen after a moment
-          setTimeout(() => {
-            showControlScreen();
-            connectMQTT(DEVICE_ID);
-          }, 2000);
-        }
-
-        if (data.ok === false) {
-          setSetupStatus('error', data.error || 'WiFi connection failed. Check password and try again.');
-          document.getElementById('btnSendWifi').disabled = false;
-          document.getElementById('btnSendWifi').textContent = 'Connect ESP32 to WiFi';
-        }
-
-        if (data.status === 'connecting') {
-          setSetupStatus('info', 'ESP32 is connecting to WiFi...');
-        }
-
-      } catch(e) {
-        console.log('Non-JSON BLE message:', value);
-      }
-    }
-
-    // Send WiFi credentials to ESP32 via BLE
-    async function sendWiFiCredentials() {
-      const ssid = document.getElementById('wifiSSID').value.trim();
-      const pass = document.getElementById('wifiPass').value;
-
-      if (!ssid) { showToast('Enter WiFi network name'); return; }
-      if (!bleCharWifi) { showToast('Not connected via Bluetooth'); return; }
-
-      const btn = document.getElementById('btnSendWifi');
-      btn.disabled = true;
-      btn.textContent = 'Sending...';
-      setSetupStatus('info', 'Sending WiFi credentials to ESP32...');
-
-      try {
-        const json = JSON.stringify({ ssid: ssid, pass: pass });
-        const encoded = new TextEncoder().encode(json);
-        await bleCharWifi.writeValue(encoded);
-      } catch (err) {
-        setSetupStatus('error', 'Failed to send: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = 'Connect ESP32 to WiFi';
-      }
-    }
-
-    function setSetupStatus(type, msg) {
-      const el = document.getElementById('setupStatus');
-      el.className = 'setup-status show ' + type;
-      el.textContent = msg;
+      document.getElementById('deviceSection').classList.remove('hide');
+      document.getElementById('connectedSection').classList.add('hide');
+      setConnStatus('disconnected', 'Enter Device ID to connect');
+      setButtonsEnabled(false);
+      addLog('Disconnected', false);
     }
 
     // =============================================
@@ -604,62 +476,107 @@
       const topicLWT = 'flexpool/' + deviceId + '/lwt';
 
       setConnStatus('connecting', 'Connecting to cloud...');
-      addLog('Connecting (Device: ' + deviceId + ')...', null);
+      addLog('Connecting to MQTT broker...', null);
+
+      // Hide input, show connected bar
+      document.getElementById('deviceSection').classList.add('hide');
+      document.getElementById('connectedSection').classList.remove('hide');
+      document.getElementById('connDeviceId').textContent = deviceId;
 
       const clientId = 'flexpool-web-' + Math.random().toString(16).substr(2, 6);
+
       mqttClient = mqtt.connect(MQTT_BROKER, {
-        clientId: clientId, clean: true,
-        connectTimeout: 10000, reconnectPeriod: 3000,
+        clientId: clientId,
+        clean: true,
+        connectTimeout: 10000,
+        reconnectPeriod: 3000,
       });
 
       mqttClient.on('connect', () => {
-        setConnStatus('connected', 'Connected');
-        addLog('Connected to cloud', true);
+        setConnStatus('connected', 'Connected — Device: ' + deviceId);
+        addLog('Connected to MQTT broker', true);
         mqttClient.subscribe(topicStatus);
         mqttClient.subscribe(topicLWT);
+        addLog('Listening for pump status...', null);
         setButtonsEnabled(true);
       });
 
       mqttClient.on('message', (topic, message) => {
         try {
           const data = JSON.parse(message.toString());
-          if (topic === topicStatus) updateStatus(data);
-          else if (topic === topicLWT && data.online === false) {
-            setConnStatus('disconnected', 'ESP32 offline');
-            addLog('ESP32 went offline', false);
+          if (topic === topicStatus) {
+            updateStatus(data);
+          } else if (topic === topicLWT) {
+            if (data.online === false) {
+              setConnStatus('disconnected', 'ESP32 is offline');
+              addLog('ESP32 went offline', false);
+            }
           }
-        } catch(e) {}
+        } catch (e) {
+          addLog('Bad message: ' + message.toString(), false);
+        }
       });
 
-      mqttClient.on('error', () => { setConnStatus('disconnected', 'Connection error'); });
-      mqttClient.on('close', () => { setConnStatus('connecting', 'Reconnecting...'); setButtonsEnabled(false); });
-      mqttClient.on('reconnect', () => { setConnStatus('connecting', 'Reconnecting...'); });
+      mqttClient.on('error', (err) => {
+        setConnStatus('disconnected', 'Connection error');
+        addLog('MQTT error: ' + err.message, false);
+      });
+
+      mqttClient.on('close', () => {
+        setConnStatus('connecting', 'Reconnecting...');
+        setButtonsEnabled(false);
+      });
+
+      mqttClient.on('reconnect', () => {
+        setConnStatus('connecting', 'Reconnecting...');
+      });
     }
 
     // =============================================
     // SEND COMMANDS
     // =============================================
     function sendCmd(cmd, extra) {
-      if (!mqttClient || !mqttClient.connected) { showToast('Not connected'); return; }
+      if (!mqttClient || !mqttClient.connected) {
+        showToast('Not connected');
+        addLog('Cannot send — not connected', false);
+        return;
+      }
       let payload = { cmd: cmd };
       if (extra) Object.assign(payload, extra);
-      mqttClient.publish(topicCmd, JSON.stringify(payload));
-      addLog('Sent: ' + cmd, true);
-      showToast(cmd);
+      const msg = JSON.stringify(payload);
+      mqttClient.publish(topicCmd, msg);
+      addLog('Sent: ' + msg, true);
+      showToast('Command sent: ' + cmd);
     }
 
     function setSpeed(num) {
-      activeSpeed = num; highlightSpeed(num);
-      sendCmd('fullstart', { rpm: speeds[num - 1] });
+      const rpm = speeds[num - 1];
+      activeSpeed = num;
+      highlightSpeed(num);
+      sendCmd('fullstart', { rpm: rpm });
+      addLog('Speed ' + num + ' → ' + rpm + ' RPM', true);
     }
 
     function highlightSpeed(num) {
-      for (let i = 1; i <= 4; i++) document.getElementById('speedBtn' + i).classList.remove('active');
-      if (num > 0) document.getElementById('speedBtn' + num).classList.add('active');
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('speedBtn' + i).classList.remove('active');
+      }
+      if (num > 0) {
+        document.getElementById('speedBtn' + num).classList.add('active');
+      }
     }
 
-    function fullStartCustom() { sendCmd('fullstart', { rpm: parseInt(document.getElementById('rpmSlider').value) }); highlightSpeed(0); }
-    function setRPMOnly() { sendCmd('rpm', { value: parseInt(document.getElementById('rpmSlider').value) }); }
+    function fullStartCustom() {
+      const rpm = parseInt(document.getElementById('rpmSlider').value);
+      activeSpeed = 0;
+      highlightSpeed(0);
+      sendCmd('fullstart', { rpm: rpm });
+    }
+
+    function setRPMOnly() {
+      const rpm = parseInt(document.getElementById('rpmSlider').value);
+      sendCmd('rpm', { value: rpm });
+    }
 
     // =============================================
     // UPDATE STATUS
@@ -667,79 +584,85 @@
     function updateStatus(s) {
       const dot = document.getElementById('statusDot');
       const label = document.getElementById('statusLabel');
-      if (s.running) { dot.className = 'status-dot dot-running'; label.textContent = 'Running'; }
-      else { dot.className = 'status-dot dot-stopped'; label.textContent = 'Stopped'; activeSpeed = 0; highlightSpeed(0); }
-
+      if (s.running) {
+        dot.className = 'status-dot dot-running';
+        label.textContent = 'Running';
+      } else {
+        dot.className = 'status-dot dot-stopped';
+        label.textContent = 'Stopped';
+        activeSpeed = 0;
+        highlightSpeed(0);
+      }
       document.getElementById('rpmVal').textContent = s.rpm >= 0 ? s.rpm : '--';
       document.getElementById('wattsVal').textContent = s.watts >= 0 ? s.watts : '--';
       document.getElementById('gpmVal').textContent = s.gpm >= 0 ? s.gpm : '--';
       const modes = ['Filter','Manual','Speed 1','Speed 2','Speed 3','Speed 4'];
       document.getElementById('modeVal').textContent = modes[s.mode] || 'Mode ' + s.mode;
 
+      // Auto-detect active speed from RPM
       if (s.running && s.rpm > 0) {
+        let matched = 0;
         for (let i = 0; i < 4; i++) {
-          if (Math.abs(s.rpm - speeds[i]) < 30) { activeSpeed = i + 1; highlightSpeed(i + 1); break; }
+          if (Math.abs(s.rpm - speeds[i]) < 30) { matched = i + 1; break; }
         }
+        if (matched > 0) { activeSpeed = matched; highlightSpeed(matched); }
       }
 
-      document.getElementById('infoBar').textContent =
-        'Device: ' + (s.deviceId || DEVICE_ID) + ' | RSSI: ' + (s.rssi || '?') + ' dBm | Up: ' + formatUptime(s.uptime || 0);
+      const info = document.getElementById('infoBar');
+      info.textContent = 'Device: ' + (s.deviceId || DEVICE_ID) +
+        ' | RSSI: ' + (s.rssi || '?') + ' dBm' +
+        ' | Uptime: ' + formatUptime(s.uptime || 0);
     }
 
-    function formatUptime(s) { return s < 60 ? s+'s' : s < 3600 ? Math.floor(s/60)+'m' : Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'; }
-
-    // =============================================
-    // SETTINGS
-    // =============================================
-    function loadSettings() {
-      const saved = localStorage.getItem('flexpool_speeds');
-      if (saved) { try { const a = JSON.parse(saved); if (a.length === 4) speeds = a; } catch(e) {} }
-      for (let i = 1; i <= 4; i++) {
-        const el1 = document.getElementById('speedLabel' + i);
-        const el2 = document.getElementById('cfg' + i);
-        if (el1) el1.textContent = speeds[i-1] + ' RPM';
-        if (el2) el2.value = speeds[i-1];
-      }
-    }
-
-    function saveSettings() {
-      for (let i = 1; i <= 4; i++) { const v = parseInt(document.getElementById('cfg' + i).value); if (v >= 450 && v <= 3450) speeds[i-1] = v; }
-      localStorage.setItem('flexpool_speeds', JSON.stringify(speeds));
-      loadSettings(); showToast('Saved!');
+    function formatUptime(sec) {
+      if (sec < 60) return sec + 's';
+      if (sec < 3600) return Math.floor(sec/60) + 'm';
+      return Math.floor(sec/3600) + 'h ' + Math.floor((sec%3600)/60) + 'm';
     }
 
     // =============================================
     // UI HELPERS
     // =============================================
-    function setButtonsEnabled(on) {
-      ['speedBtn1','speedBtn2','speedBtn3','speedBtn4','btnStop','btnCustom','btnRefresh'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.disabled = !on;
+    function setButtonsEnabled(enabled) {
+      const ids = ['speedBtn1','speedBtn2','speedBtn3','speedBtn4',
+                   'btnStop','btnCustom','btnRefresh'];
+      ids.forEach(id => {
+        document.getElementById(id).disabled = !enabled;
       });
     }
 
-    function setSlider(v) { document.getElementById('rpmSlider').value = v; document.getElementById('rpmTarget').textContent = v; }
+    function setSlider(v) {
+      document.getElementById('rpmSlider').value = v;
+      document.getElementById('rpmTarget').textContent = v;
+    }
 
     function toggleAdvanced() {
-      const p = document.getElementById('advancedPanel');
-      p.classList.toggle('show');
-      p.previousElementSibling.innerHTML = p.classList.contains('show') ? '&#9650; Advanced' : '&#9660; Advanced / Manual Commands';
+      const panel = document.getElementById('advancedPanel');
+      const btn = panel.previousElementSibling;
+      panel.classList.toggle('show');
+      btn.innerHTML = panel.classList.contains('show')
+        ? '&#9650; Advanced / Manual Commands'
+        : '&#9660; Advanced / Manual Commands';
     }
 
     function setConnStatus(state, text) {
-      document.getElementById('connBar').className = 'conn-bar ' + state;
+      const bar = document.getElementById('connBar');
+      bar.className = 'conn-bar ' + state;
       document.getElementById('connLabel').textContent = text;
     }
 
     function showToast(msg) {
       const t = document.getElementById('toast');
-      t.textContent = msg; t.classList.add('show');
+      t.textContent = msg;
+      t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2000);
     }
 
     function addLog(msg, ok) {
-      const box = document.getElementById('logBox'); if (!box) return;
+      const box = document.getElementById('logBox');
       const cls = ok === true ? 'log-ok' : (ok === false ? 'log-err' : '');
-      box.innerHTML = '<div class="log-entry ' + cls + '">[' + new Date().toLocaleTimeString() + '] ' + msg + '</div>' + box.innerHTML;
+      const time = new Date().toLocaleTimeString();
+      box.innerHTML = '<div class="log-entry ' + cls + '">[' + time + '] ' + msg + '</div>' + box.innerHTML;
       if (box.children.length > 50) box.removeChild(box.lastChild);
     }
   </script>

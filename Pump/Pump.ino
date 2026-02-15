@@ -126,10 +126,16 @@ void setup() {
 void loop() {
   // Check for incoming RS-485 packets
   if (Serial2.available()) {
-    delay(50);  // Wait for full packet to arrive
+    // Read bytes with a timeout — keep reading until no new bytes for 20ms
+    // At 9600 baud, inter-byte gap within a packet is ~1ms,
+    // so 20ms of silence means the full packet has arrived.
     size_t len = 0;
-    while (Serial2.available() && len < sizeof(rxBuffer)) {
-      rxBuffer[len++] = Serial2.read();
+    unsigned long lastByteTime = millis();
+    while (millis() - lastByteTime < 20 && len < sizeof(rxBuffer)) {
+      if (Serial2.available()) {
+        rxBuffer[len++] = Serial2.read();
+        lastByteTime = millis();  // Reset timeout on each byte
+      }
     }
     
     if (len > 0) {
@@ -159,10 +165,17 @@ void loop() {
 // PROCESS INCOMING PACKET
 // =============================================
 void processIncoming(uint8_t* data, size_t length) {
+  // Always print raw bytes first (for debugging)
+  Serial.printf("\n>> RX RAW [%d bytes]: ", length);
+  for (size_t i = 0; i < length; i++) {
+    Serial.printf("%02X ", data[i]);
+  }
+  Serial.println();
+  
   // Find the Pentair preamble
   int msgStart = pentairFindMessage(data, length);
   if (msgStart < 0) {
-    Serial.println(">> RX: No valid Pentair preamble found");
+    Serial.println(">> No valid Pentair preamble (FF 00 FF A5) found in above bytes");
     return;
   }
   
@@ -547,14 +560,16 @@ void sendRS485(uint8_t* data, size_t length) {
   }
   Serial.println();
   
-  digitalWrite(RS485_DE_RE_PIN, HIGH);
-  delayMicroseconds(100);
+  digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
+  delay(1);  // Let DE/RE stabilize
   
   Serial2.write(data, length);
-  Serial2.flush();
+  Serial2.flush();  // Wait for TX buffer to empty
   
-  delayMicroseconds(100);
-  digitalWrite(RS485_DE_RE_PIN, LOW);
+  // At 9600 baud, each byte takes ~1.04ms. Wait for last byte to finish.
+  delay(5);  // 5ms safety margin after flush
+  
+  digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
 }
 
 // =============================================

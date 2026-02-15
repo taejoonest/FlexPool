@@ -179,10 +179,14 @@ void loop() {
   
   // Check for RS-485 responses from pump
   if (Serial2.available()) {
-    delay(50);  // Wait for full packet to arrive
+    // Read bytes with a timeout — keep reading until no new bytes for 20ms
+    unsigned long lastByteTime = millis();
     rxLen = 0;
-    while (Serial2.available() && rxLen < sizeof(rxBuffer)) {
-      rxBuffer[rxLen++] = Serial2.read();
+    while (millis() - lastByteTime < 20 && rxLen < sizeof(rxBuffer)) {
+      if (Serial2.available()) {
+        rxBuffer[rxLen++] = Serial2.read();
+        lastByteTime = millis();
+      }
     }
     
     if (rxLen > 0) {
@@ -683,14 +687,18 @@ void waitForResponse() {
 void sendRS485(uint8_t* data, size_t length) {
   printPacketHex("  TX", data, length);
   
-  digitalWrite(RS485_DE_RE_PIN, HIGH);
-  delayMicroseconds(100);
+  digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
+  delay(1);  // Let DE/RE stabilize
   
   Serial2.write(data, length);
-  Serial2.flush();
+  Serial2.flush();  // Wait for TX buffer to empty
   
-  delayMicroseconds(100);
-  digitalWrite(RS485_DE_RE_PIN, LOW);
+  // At 9600 baud, each byte takes ~1.04ms to physically leave the UART.
+  // flush() empties the software buffer, but the last byte may still be
+  // in the hardware shift register. Wait long enough for it to finish.
+  delay(5);  // 5ms safety margin after flush
+  
+  digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
 }
 
 // =============================================
