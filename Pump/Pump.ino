@@ -557,21 +557,15 @@ void sendRS485(uint8_t* data, size_t length) {
   // Clear any stale bytes in the receive buffer
   while (Serial2.available()) Serial2.read();
   
-  // Enable transmitter
+  // Enable transmitter and start data IMMEDIATELY
   digitalWrite(RS485_DE_RE_PIN, HIGH);
-  delayMicroseconds(500);
+  delayMicroseconds(500);  // MAX3485 DE needs 0.2μs; 500μs is plenty
   
-  // Send 3 sync bytes before actual packet (receiver needs time to lock on)
-  uint8_t sync[] = {0xFF, 0xFF, 0xFF};
-  Serial2.write(sync, 3);
-  Serial2.flush();
-  delay(4);
-  
-  // Send actual packet
+  // Bulk write all bytes at once
   Serial2.write(data, length);
   Serial2.flush();
   
-  // Wait for all bytes to physically leave the wire
+  // Safety wait: all bytes × 1.1ms + 5ms margin
   unsigned int safetyMs = ((length * 11) / 10) + 5;
   delay(safetyMs);
   

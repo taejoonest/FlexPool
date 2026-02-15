@@ -706,24 +706,19 @@ void sendRS485(uint8_t* data, size_t length) {
   // Clear any stale bytes in the receive buffer
   while (Serial2.available()) Serial2.read();
   
-  // Enable transmitter
+  // Enable transmitter and start data IMMEDIATELY after —
+  // minimizing the dead time where the bus is driven but no data flows.
+  // (Long dead time causes the receiver to pick up phantom bytes from the bus transition.)
   digitalWrite(RS485_DE_RE_PIN, HIGH);
-  delayMicroseconds(500);  // Let DE/RE stabilize
+  delayMicroseconds(500);  // MAX3485 DE needs 0.2μs; 500μs is 2500× margin
   
-  // Send 3 sync bytes (0xFF) BEFORE the actual packet.
-  // The receiver may miss the first few bytes after the bus transitions
-  // from idle/floating to actively driven. These sacrificial bytes absorb that.
-  // The receiver will ignore them since they don't form a valid preamble.
-  uint8_t sync[] = {0xFF, 0xFF, 0xFF};
-  Serial2.write(sync, 3);
-  Serial2.flush();
-  delay(4);  // Wait for sync bytes to fully transmit (~3.1ms at 9600)
-  
-  // Now send the actual packet — the receiver is synced and ready
+  // Bulk write all bytes at once into the 128-byte UART TX FIFO
   Serial2.write(data, length);
-  Serial2.flush();
+  Serial2.flush();  // Wait for FIFO to drain into shift register
   
-  // Wait for all bytes to physically leave the wire
+  // After flush(), the last byte may still be in the shift register.
+  // At 9600 baud (8N1): 1 byte = 10 bits / 9600 = 1.042ms.
+  // Wait for (all bytes × 1.1ms) + 5ms margin, just in case flush() returned early.
   unsigned int safetyMs = ((length * 11) / 10) + 5;
   delay(safetyMs);
   
