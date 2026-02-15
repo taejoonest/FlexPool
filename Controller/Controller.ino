@@ -179,7 +179,7 @@ void loop() {
   
   // Check for RS-485 responses from pump
   if (Serial2.available()) {
-    delay(100);  // Wait 100ms for full packet to arrive
+    delay(200);  // Wait 200ms for full packet to arrive
     rxLen = 0;
     while (Serial2.available() && rxLen < sizeof(rxBuffer)) {
       rxBuffer[rxLen++] = Serial2.read();
@@ -687,22 +687,24 @@ void sendRS485(uint8_t* data, size_t length) {
   while (Serial2.available()) Serial2.read();
   
   digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
-  delay(10);  // 10ms for DE/RE to fully stabilize
+  delay(50);  // 50ms for bus and DE/RE to fully stabilize
   
-  // Send bytes one at a time to ensure UART processes each one
+  // Send each byte individually with explicit per-byte timing.
+  // At 9600 baud (8N1), each byte = 10 bits = 1.042ms on the wire.
+  // We wait 2ms between bytes to guarantee each one finishes before the next.
   for (size_t i = 0; i < length; i++) {
     Serial2.write(data[i]);
+    Serial2.flush();        // Wait for this byte to leave the buffer
+    delay(2);               // 2ms gap = nearly 2× the byte time at 9600
   }
-  Serial2.flush();  // Try to wait for TX buffer
   
-  // DON'T trust flush() alone on ESP32!
-  // At 9600 baud (8N1): 10 bits/byte = 1.042ms per byte
-  // Wait for ALL bytes to physically leave the wire, plus margin
-  unsigned int txTimeMs = (length * 11 / 10) + 15;  // ~1.1ms/byte + 15ms margin
-  delay(txTimeMs);
+  // Extra safety: wait 50ms after last byte to make sure it's fully on the wire
+  delay(50);
   
   digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
-  Serial.printf("  (DE held for ~%dms after write)\n", txTimeMs + 10);
+  
+  unsigned int totalMs = 50 + (length * 4) + 50;  // approximate total DE hold time
+  Serial.printf("  (DE held HIGH for ~%dms total)\n", totalMs);
 }
 
 // =============================================

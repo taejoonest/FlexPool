@@ -126,7 +126,7 @@ void setup() {
 void loop() {
   // Check for incoming RS-485 packets
   if (Serial2.available()) {
-    delay(100);  // Wait 100ms for full packet to arrive (at 9600 baud, 12 bytes ≈ 12ms)
+    delay(200);  // Wait 200ms for full packet to arrive (Controller sends slowly) (at 9600 baud, 12 bytes ≈ 12ms)
     size_t len = 0;
     while (Serial2.available() && len < sizeof(rxBuffer)) {
       rxBuffer[len++] = Serial2.read();
@@ -558,19 +558,17 @@ void sendRS485(uint8_t* data, size_t length) {
   while (Serial2.available()) Serial2.read();
   
   digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
-  delay(10);  // 10ms for DE/RE to fully stabilize
+  delay(50);  // 50ms for bus and DE/RE to fully stabilize
   
-  // Send bytes one at a time
+  // Send each byte individually with explicit per-byte timing
   for (size_t i = 0; i < length; i++) {
     Serial2.write(data[i]);
+    Serial2.flush();
+    delay(2);               // 2ms gap between bytes
   }
-  Serial2.flush();
   
-  // DON'T trust flush() alone on ESP32!
-  // At 9600 baud (8N1): 10 bits/byte = 1.042ms per byte
-  // Wait for ALL bytes to physically leave the wire, plus margin
-  unsigned int txTimeMs = (length * 11 / 10) + 15;  // ~1.1ms/byte + 15ms margin
-  delay(txTimeMs);
+  // Extra safety: wait 50ms after last byte
+  delay(50);
   
   digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
 }
