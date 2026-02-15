@@ -683,18 +683,26 @@ void waitForResponse() {
 void sendRS485(uint8_t* data, size_t length) {
   printPacketHex("  TX", data, length);
   
+  // Clear any stale bytes in the receive buffer
+  while (Serial2.available()) Serial2.read();
+  
   digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
-  delay(1);  // Let DE/RE stabilize
+  delay(10);  // 10ms for DE/RE to fully stabilize
   
-  Serial2.write(data, length);
-  Serial2.flush();  // Wait for TX buffer to empty
+  // Send bytes one at a time to ensure UART processes each one
+  for (size_t i = 0; i < length; i++) {
+    Serial2.write(data[i]);
+  }
+  Serial2.flush();  // Try to wait for TX buffer
   
-  // At 9600 baud, each byte takes ~1.04ms to physically leave the UART.
-  // flush() empties the software buffer, but the last byte may still be
-  // in the hardware shift register. Wait long enough for it to finish.
-  delay(5);  // 5ms safety margin after flush
+  // DON'T trust flush() alone on ESP32!
+  // At 9600 baud (8N1): 10 bits/byte = 1.042ms per byte
+  // Wait for ALL bytes to physically leave the wire, plus margin
+  unsigned int txTimeMs = (length * 11 / 10) + 15;  // ~1.1ms/byte + 15ms margin
+  delay(txTimeMs);
   
   digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
+  Serial.printf("  (DE held for ~%dms after write)\n", txTimeMs + 10);
 }
 
 // =============================================
