@@ -554,21 +554,14 @@ void sendRS485(uint8_t* data, size_t length) {
   }
   Serial.println();
   
-  // Clear any stale data in RX buffer before sending
-  while (Serial2.available()) Serial2.read();
-  
   digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
-  delay(10);  // 10ms for MAX3485 DE/RE to fully stabilize
+  delay(1);  // Let DE/RE stabilize
   
-  // Send all bytes
-  for (size_t i = 0; i < length; i++) {
-    Serial2.write(data[i]);
-  }
-  Serial2.flush();
+  Serial2.write(data, length);
+  Serial2.flush();  // Wait for TX buffer to empty
   
-  // Manually wait for all bytes to leave the wire.
-  // At 9600 baud: 1 byte ≈ 1.04ms. Wait generously.
-  delay((length * 3 / 2) + 10);
+  // At 9600 baud, each byte takes ~1.04ms. Wait for last byte to finish.
+  delay(5);  // 5ms safety margin after flush
   
   digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
 }

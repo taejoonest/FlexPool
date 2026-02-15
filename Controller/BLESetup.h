@@ -1,30 +1,26 @@
 /*
  * =============================================
- * BLESetup.h - Bluetooth LE Provisioning
+ * BLESetup.h - Bluetooth WiFi Provisioning
  * =============================================
  * 
- * ONE-TIME SETUP via Bluetooth:
- *   1. ESP32 boots with no WiFi credentials
- *   2. BLE turns ON, advertises as "FlexPool"
- *   3. User opens the FlexPool webpage (Chrome on PC or Android)
- *   4. Browser connects via BLE
- *   5. Browser sends WiFi SSID + password over BLE
- *   6. ESP32 saves credentials, connects to WiFi
- *   7. ESP32 sends back Device ID over BLE
- *   8. BLE turns OFF, ESP32 reboots into normal mode
+ * Handles one-time WiFi setup via Bluetooth Low Energy (BLE).
  * 
- * NOTE: Web Bluetooth requires Chrome (Windows/Mac/Android).
- *       iPhones do NOT support Web Bluetooth.
+ * HOW IT WORKS:
+ *   1. If no WiFi credentials are saved, ESP32 advertises via BLE
+ *      as "FlexPool" for up to 5 minutes.
+ *   2. User connects from Chrome on PC/Android and sends WiFi
+ *      SSID + password via BLE characteristics.
+ *   3. ESP32 saves credentials to flash, connects to WiFi, and reboots.
+ *   4. On subsequent boots, ESP32 connects to saved WiFi automatically.
  * 
- * EVERY BOOT AFTER:
- *   - BLE never turns on
- *   - ESP32 connects to WiFi using saved credentials
+ * NOTE: Web Bluetooth API does NOT work on iPhone/iOS.
+ *       Use Chrome on PC or Android for BLE setup.
  * 
- * TIMEOUT:
- *   - BLE stays on for 5 minutes
- *   - If nobody connects, ESP32 restarts and tries again
+ * ALSO PROVIDES:
+ *   - WiFi credential storage/retrieval via Preferences (flash memory)
+ *   - Static helper methods for checking/connecting/clearing credentials
  * 
- * REQUIRES: ESP32 BLE Arduino library (built-in with ESP32 board package)
+ * REQUIRES: Built-in ESP32 BLE libraries (no extra install needed)
  */
 
 #ifndef BLE_SETUP_H
@@ -38,419 +34,359 @@
 #include <BLE2902.h>
 
 // =============================================
-// CONFIGURATION
+// BLE SERVICE & CHARACTERISTIC UUIDs
 // =============================================
-#define BLE_DEVICE_NAME    "FlexPool"
-#define BLE_TIMEOUT_MS     300000   // 5 minutes
-
-#define WIFI_CONNECT_TIMEOUT  20    // seconds
-
-#define PREFS_NAMESPACE    "flexpool"
-#define PREFS_KEY_SSID     "ssid"
-#define PREFS_KEY_PASS     "pass"
-
-// =============================================
-// BLE UUIDs (custom, unique to FlexPool)
-// =============================================
-// Service: the main FlexPool provisioning service
-#define SERVICE_UUID           "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-
-// Characteristic: browser WRITES WiFi credentials here
-// Format: JSON string {"ssid":"MyWiFi","pass":"mypassword"}
-#define CHAR_WIFI_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-
-// Characteristic: ESP32 WRITES status/result here, browser reads/gets notified
-// Format: JSON string {"ok":true,"id":"A1B2C3","ip":"192.168.1.50"}
-//   or on failure:    {"ok":false,"error":"Connection failed"}
-#define CHAR_STATUS_UUID       "d1a7e0c2-4f3b-4b1e-9c5d-8a6f2b3e4d5c"
-
-// Characteristic: browser can WRITE "scan" to trigger WiFi network scan
-// ESP32 responds on CHAR_STATUS with list of networks
-#define CHAR_SCAN_UUID         "e3b0c442-98fc-1c14-b39f-92f6bce1d587"
+// Custom UUIDs for FlexPool WiFi provisioning
+#define FLEXPOOL_SERVICE_UUID        "12345678-1234-5678-1234-56789abcdef0"
+#define CHAR_SSID_UUID               "12345678-1234-5678-1234-56789abcdef1"
+#define CHAR_PASSWORD_UUID           "12345678-1234-5678-1234-56789abcdef2"
+#define CHAR_DEVICE_ID_UUID          "12345678-1234-5678-1234-56789abcdef3"
+#define CHAR_STATUS_UUID             "12345678-1234-5678-1234-56789abcdef4"
+#define CHAR_COMMAND_UUID            "12345678-1234-5678-1234-56789abcdef5"
 
 // =============================================
-// FORWARD DECLARATIONS
+// PREFERENCES KEYS (flash storage)
 // =============================================
-class BLESetup;
+#define PREF_NAMESPACE  "flexpool"
+#define PREF_SSID       "wifi_ssid"
+#define PREF_PASSWORD   "wifi_pass"
 
-// Global pointer for BLE callbacks to access
-static BLESetup* _bleSetupInstance = nullptr;
+// =============================================
+// TIMING
+// =============================================
+#define BLE_TIMEOUT_MS  (5 * 60 * 1000)  // 5 minutes
 
 // =============================================
 // BLESetup CLASS
 // =============================================
 class BLESetup {
 private:
-  BLEServer*         _server = nullptr;
-  BLECharacteristic* _charWifi = nullptr;
+  BLEServer* _pServer = nullptr;
+  BLECharacteristic* _charSSID = nullptr;
+  BLECharacteristic* _charPass = nullptr;
+  BLECharacteristic* _charDeviceId = nullptr;
   BLECharacteristic* _charStatus = nullptr;
-  BLECharacteristic* _charScan = nullptr;
+  BLECharacteristic* _charCommand = nullptr;
   
   bool _deviceConnected = false;
-  bool _shouldRestart = false;
-  String _receivedSSID = "";
-  String _receivedPass = "";
   bool _credentialsReceived = false;
-  bool _scanRequested = false;
-
-  // ---- Simple JSON parser (no library needed) ----
-  String extractJsonString(const String& json, const char* key) {
-    String search = String("\"") + key + "\"";
-    int idx = json.indexOf(search);
-    if (idx < 0) return "";
+  String _newSSID = "";
+  String _newPassword = "";
+  
+  // ---- BLE Server Callbacks ----
+  class ServerCallbacks : public BLEServerCallbacks {
+  public:
+    BLESetup* parent;
+    ServerCallbacks(BLESetup* p) : parent(p) {}
     
-    // Find the colon
-    idx = json.indexOf(':', idx);
-    if (idx < 0) return "";
-    
-    // Find opening quote
-    idx = json.indexOf('"', idx + 1);
-    if (idx < 0) return "";
-    
-    // Find closing quote
-    int end = json.indexOf('"', idx + 1);
-    if (end < 0) return "";
-    
-    return json.substring(idx + 1, end);
-  }
-
-  // ---- Generate Device ID from MAC address ----
-  String getDeviceId() {
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
-    char id[7];
-    snprintf(id, sizeof(id), "%02X%02X%02X", mac[3], mac[4], mac[5]);
-    return String(id);
-  }
-
-  // ---- Try connecting to WiFi with given credentials ----
-  bool tryConnect(const String& ssid, const String& pass) {
-    Serial.printf("[BLE] Trying to connect to \"%s\"...\n", ssid.c_str());
-    
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid.c_str(), pass.c_str());
-    
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < WIFI_CONNECT_TIMEOUT * 2) {
-      delay(500);
-      Serial.print(".");
-      attempts++;
+    void onConnect(BLEServer* pServer) override {
+      parent->_deviceConnected = true;
+      Serial.println("[BLE] Device connected!");
+      Serial.println("[BLE] Waiting for WiFi credentials...");
     }
-    Serial.println();
     
-    return (WiFi.status() == WL_CONNECTED);
-  }
-
-  // ---- Save credentials to flash ----
-  void saveCredentials(const String& ssid, const String& pass) {
-    Preferences prefs;
-    prefs.begin(PREFS_NAMESPACE, false);
-    prefs.putString(PREFS_KEY_SSID, ssid);
-    prefs.putString(PREFS_KEY_PASS, pass);
-    prefs.end();
-    Serial.printf("[BLE] Credentials saved for \"%s\"\n", ssid.c_str());
-  }
-
-  // ---- Send status back to browser via BLE ----
-  void sendStatus(const String& json) {
-    if (_charStatus && _deviceConnected) {
-      _charStatus->setValue(json.c_str());
-      _charStatus->notify();
-      Serial.printf("[BLE] Status sent: %s\n", json.c_str());
+    void onDisconnect(BLEServer* pServer) override {
+      parent->_deviceConnected = false;
+      Serial.println("[BLE] Device disconnected");
+      // Re-advertise if credentials weren't received
+      if (!parent->_credentialsReceived) {
+        pServer->startAdvertising();
+        Serial.println("[BLE] Re-advertising...");
+      }
     }
-  }
-
-  // ---- Handle received WiFi credentials ----
-  void handleCredentials() {
-    _credentialsReceived = false;
+  };
+  
+  // ---- Command Characteristic Callback ----
+  // When the web page writes "CONNECT" to the command characteristic,
+  // it means SSID and password have been written and we should try to connect.
+  class CommandCallback : public BLECharacteristicCallbacks {
+  public:
+    BLESetup* parent;
+    CommandCallback(BLESetup* p) : parent(p) {}
     
-    Serial.printf("[BLE] Received WiFi credentials: SSID=\"%s\"\n", _receivedSSID.c_str());
-    
-    // Notify phone: trying to connect
-    sendStatus("{\"status\":\"connecting\"}");
-    delay(200);
-    
-    // Try connecting
-    if (tryConnect(_receivedSSID, _receivedPass)) {
-      // SUCCESS!
-      String ip = WiFi.localIP().toString();
-      String deviceId = getDeviceId();
+    void onWrite(BLECharacteristic* pCharacteristic) override {
+      std::string val = pCharacteristic->getValue();
+      String cmd = String(val.c_str());
+      cmd.trim();
       
-      Serial.printf("[BLE] Connected! IP: %s, Device ID: %s\n", ip.c_str(), deviceId.c_str());
-      
-      // Save credentials to flash
-      saveCredentials(_receivedSSID, _receivedPass);
-      
-      // Send success + device ID back to phone
-      String response = "{\"ok\":true,\"id\":\"" + deviceId + "\",\"ip\":\"" + ip + "\"}";
-      sendStatus(response);
-      
-      // Wait for phone to receive the response
-      delay(2000);
-      
-      _shouldRestart = true;
-      
-    } else {
-      // FAILED
-      Serial.println("[BLE] WiFi connection FAILED");
-      
-      // Disconnect WiFi and go back to waiting
-      WiFi.disconnect();
-      
-      // Notify phone
-      sendStatus("{\"ok\":false,\"error\":\"Could not connect to WiFi. Check password.\"}");
+      if (cmd.equalsIgnoreCase("CONNECT")) {
+        // Read SSID and password from their characteristics
+        std::string ssidVal = parent->_charSSID->getValue();
+        std::string passVal = parent->_charPass->getValue();
+        
+        parent->_newSSID = String(ssidVal.c_str());
+        parent->_newPassword = String(passVal.c_str());
+        
+        Serial.printf("[BLE] Received SSID: \"%s\"\n", parent->_newSSID.c_str());
+        Serial.println("[BLE] Received password: ****");
+        
+        if (parent->_newSSID.length() > 0) {
+          parent->_credentialsReceived = true;
+          
+          // Update status characteristic
+          parent->_charStatus->setValue("CONNECTING");
+          parent->_charStatus->notify();
+        } else {
+          parent->_charStatus->setValue("ERROR: Empty SSID");
+          parent->_charStatus->notify();
+        }
+      }
     }
-  }
-
-  // ---- Handle WiFi scan request ----
-  void handleScanRequest() {
-    _scanRequested = false;
-    
-    Serial.println("[BLE] Scanning WiFi networks...");
-    
-    // Need to temporarily set WiFi mode for scanning
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
-    delay(100);
-    
-    int n = WiFi.scanNetworks();
-    
-    String json = "{\"networks\":[";
-    for (int i = 0; i < n && i < 10; i++) {  // max 10 networks (BLE packet size limit)
-      if (i > 0) json += ",";
-      json += "{\"s\":\"" + WiFi.SSID(i) + "\",\"r\":" + String(WiFi.RSSI(i)) + "}";
-    }
-    json += "]}";
-    
-    WiFi.mode(WIFI_OFF);  // Turn WiFi back off
-    
-    sendStatus(json);
-    Serial.printf("[BLE] Found %d networks\n", n);
-  }
+  };
 
 public:
-  // =============================================
-  // BLE SERVER CALLBACKS (friend access)
-  // =============================================
-  void onConnect() {
-    _deviceConnected = true;
-    Serial.println("[BLE] Device connected!");
-  }
+  BLESetup() {}
   
-  void onDisconnect() {
-    _deviceConnected = false;
-    Serial.println("[BLE] Device disconnected");
-    // Restart advertising so phone can reconnect
-    if (_server && !_shouldRestart) {
-      _server->startAdvertising();
-    }
-  }
-  
-  void onWifiWrite(const String& value) {
-    _receivedSSID = extractJsonString(value, "ssid");
-    _receivedPass = extractJsonString(value, "pass");
-    _credentialsReceived = true;
-  }
-  
-  void onScanWrite() {
-    _scanRequested = true;
-  }
-
   // =============================================
-  // PUBLIC: Check if credentials exist
+  // STATIC: Check if WiFi credentials are saved
   // =============================================
   static bool hasSavedCredentials() {
     Preferences prefs;
-    prefs.begin(PREFS_NAMESPACE, true);
-    String ssid = prefs.getString(PREFS_KEY_SSID, "");
+    prefs.begin(PREF_NAMESPACE, true);  // read-only
+    String ssid = prefs.getString(PREF_SSID, "");
     prefs.end();
-    return (ssid.length() > 0);
+    return ssid.length() > 0;
   }
-
+  
   // =============================================
-  // PUBLIC: Get saved SSID
+  // STATIC: Get saved SSID
   // =============================================
   static String getSavedSSID() {
     Preferences prefs;
-    prefs.begin(PREFS_NAMESPACE, true);
-    String ssid = prefs.getString(PREFS_KEY_SSID, "");
+    prefs.begin(PREF_NAMESPACE, true);
+    String ssid = prefs.getString(PREF_SSID, "");
     prefs.end();
     return ssid;
   }
-
+  
   // =============================================
-  // PUBLIC: Connect using saved credentials
+  // STATIC: Connect to WiFi using saved credentials
   // =============================================
   static bool connectSaved() {
     Preferences prefs;
-    prefs.begin(PREFS_NAMESPACE, true);
-    String ssid = prefs.getString(PREFS_KEY_SSID, "");
-    String pass = prefs.getString(PREFS_KEY_PASS, "");
+    prefs.begin(PREF_NAMESPACE, true);
+    String ssid = prefs.getString(PREF_SSID, "");
+    String pass = prefs.getString(PREF_PASSWORD, "");
     prefs.end();
     
-    if (ssid.length() == 0) return false;
+    if (ssid.length() == 0) {
+      Serial.println("[WiFi] No saved credentials");
+      return false;
+    }
     
-    Serial.printf("[WiFi] Connecting to \"%s\"", ssid.c_str());
+    Serial.printf("[WiFi] Connecting to \"%s\"...", ssid.c_str());
     
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pass.c_str());
     
+    // Wait up to 15 seconds for connection
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < WIFI_CONNECT_TIMEOUT * 2) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(500);
       Serial.print(".");
       attempts++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println(" Connected!");
-      Serial.printf("[WiFi] IP Address: %s\n", WiFi.localIP().toString().c_str());
-      Serial.printf("[WiFi] Signal: %d dBm\n", WiFi.RSSI());
+      Serial.printf(" Connected!\n");
+      Serial.printf("[WiFi] IP address: %s\n", WiFi.localIP().toString().c_str());
+      Serial.printf("[WiFi] Signal strength: %d dBm\n", WiFi.RSSI());
       return true;
     } else {
-      Serial.println(" FAILED!");
+      Serial.println(" Failed!");
+      WiFi.disconnect();
       return false;
     }
   }
-
+  
   // =============================================
-  // PUBLIC: Clear saved credentials
+  // STATIC: Clear saved credentials
   // =============================================
   static void clearCredentials() {
     Preferences prefs;
-    prefs.begin(PREFS_NAMESPACE, false);
-    prefs.clear();
+    prefs.begin(PREF_NAMESPACE, false);
+    prefs.remove(PREF_SSID);
+    prefs.remove(PREF_PASSWORD);
     prefs.end();
-    Serial.println("[WiFi] Saved credentials cleared.");
+    Serial.println("[WiFi] Credentials cleared from flash");
   }
-
+  
   // =============================================
-  // PUBLIC: Run BLE provisioning (blocking)
-  // Runs for up to 5 minutes, then restarts
+  // STATIC: Save WiFi credentials to flash
   // =============================================
+  static void saveCredentials(const String& ssid, const String& password) {
+    Preferences prefs;
+    prefs.begin(PREF_NAMESPACE, false);
+    prefs.putString(PREF_SSID, ssid);
+    prefs.putString(PREF_PASSWORD, password);
+    prefs.end();
+    Serial.println("[WiFi] Credentials saved to flash");
+  }
+  
+  // =============================================
+  // RUN PROVISIONING (blocking, reboots when done)
+  // =============================================
+  // This blocks for up to 5 minutes waiting for BLE credentials.
+  // After receiving credentials, it saves them and reboots.
   void runProvisioning() {
-    _bleSetupInstance = this;
+    Serial.println("\n[BLE] ========================================");
+    Serial.println("[BLE]  FlexPool Bluetooth WiFi Setup");
+    Serial.println("[BLE] ========================================");
+    Serial.println("[BLE] The ESP32 is now advertising via Bluetooth.");
+    Serial.println("[BLE] ");
+    Serial.println("[BLE] TO SETUP WIFI:");
+    Serial.println("[BLE]   1. Open Chrome on your PC or Android phone");
+    Serial.println("[BLE]      (iPhone is NOT supported - Web Bluetooth");
+    Serial.println("[BLE]       does not work on iOS/Safari)");
+    Serial.println("[BLE]   2. Go to: https://taejoonest.github.io/FlexPool");
+    Serial.println("[BLE]   3. Click 'Connect via Bluetooth'");
+    Serial.println("[BLE]   4. Select 'FlexPool' from the device list");
+    Serial.println("[BLE]   5. Enter your WiFi name and password");
+    Serial.println("[BLE] ");
+    Serial.println("[BLE] BLE will stay active for 5 minutes.");
+    Serial.println("[BLE] ========================================\n");
     
-    Serial.println("\n=============================================");
-    Serial.println("  BLUETOOTH SETUP MODE");
-    Serial.println("=============================================");
-    Serial.println("  BLE is ON for 5 minutes.");
-    Serial.println("  On your PC or Android, open Chrome:");
-    Serial.println("  https://taejoonest.github.io/FlexPool");
-    Serial.println("  Then click 'Connect via Bluetooth'.");
-    Serial.println("  (iPhone NOT supported for setup)");
-    Serial.println("=============================================\n");
-
+    // Generate device ID from MAC
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    char deviceId[7];
+    snprintf(deviceId, sizeof(deviceId), "%02X%02X%02X", mac[3], mac[4], mac[5]);
+    
     // Initialize BLE
-    BLEDevice::init(BLE_DEVICE_NAME);
+    BLEDevice::init("FlexPool");
+    _pServer = BLEDevice::createServer();
+    _pServer->setCallbacks(new ServerCallbacks(this));
     
-    // Create BLE Server
-    _server = BLEDevice::createServer();
+    // Create service
+    BLEService* pService = _pServer->createService(FLEXPOOL_SERVICE_UUID);
     
-    // Set server callbacks using a lambda-friendly approach
-    class ServerCallbacks : public BLEServerCallbacks {
-      void onConnect(BLEServer* server) override {
-        if (_bleSetupInstance) _bleSetupInstance->onConnect();
-      }
-      void onDisconnect(BLEServer* server) override {
-        if (_bleSetupInstance) _bleSetupInstance->onDisconnect();
-      }
-    };
-    _server->setCallbacks(new ServerCallbacks());
+    // SSID characteristic (read/write)
+    _charSSID = pService->createCharacteristic(
+      CHAR_SSID_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
+    );
+    _charSSID->setValue("");
     
-    // Create BLE Service
-    BLEService* service = _server->createService(SERVICE_UUID);
-    
-    // Characteristic: WiFi credentials (phone writes to this)
-    _charWifi = service->createCharacteristic(
-      CHAR_WIFI_UUID,
+    // Password characteristic (write only)
+    _charPass = pService->createCharacteristic(
+      CHAR_PASSWORD_UUID,
       BLECharacteristic::PROPERTY_WRITE
     );
+    _charPass->setValue("");
     
-    class WifiCallbacks : public BLECharacteristicCallbacks {
-      void onWrite(BLECharacteristic* c) override {
-        if (_bleSetupInstance) {
-          String val = String(c->getValue().c_str());
-          _bleSetupInstance->onWifiWrite(val);
-        }
-      }
-    };
-    _charWifi->setCallbacks(new WifiCallbacks());
+    // Device ID characteristic (read only) - so the web page can get our ID
+    _charDeviceId = pService->createCharacteristic(
+      CHAR_DEVICE_ID_UUID,
+      BLECharacteristic::PROPERTY_READ
+    );
+    _charDeviceId->setValue(deviceId);
     
-    // Characteristic: Status (ESP32 writes, phone reads/gets notified)
-    _charStatus = service->createCharacteristic(
+    // Status characteristic (read/notify) - feedback to the web page
+    _charStatus = pService->createCharacteristic(
       CHAR_STATUS_UUID,
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
     _charStatus->addDescriptor(new BLE2902());
+    _charStatus->setValue("READY");
     
-    // Set initial status with device ID
-    String initStatus = "{\"status\":\"ready\",\"id\":\"" + getDeviceId() + "\"}";
-    _charStatus->setValue(initStatus.c_str());
-    
-    // Characteristic: Scan trigger (phone writes "scan" to request WiFi scan)
-    _charScan = service->createCharacteristic(
-      CHAR_SCAN_UUID,
+    // Command characteristic (write) - triggers connection attempt
+    _charCommand = pService->createCharacteristic(
+      CHAR_COMMAND_UUID,
       BLECharacteristic::PROPERTY_WRITE
     );
-    
-    class ScanCallbacks : public BLECharacteristicCallbacks {
-      void onWrite(BLECharacteristic* c) override {
-        if (_bleSetupInstance) _bleSetupInstance->onScanWrite();
-      }
-    };
-    _charScan->setCallbacks(new ScanCallbacks());
+    _charCommand->setCallbacks(new CommandCallback(this));
     
     // Start service and advertising
-    service->start();
+    pService->start();
     
-    BLEAdvertising* advertising = BLEDevice::getAdvertising();
-    advertising->addServiceUUID(SERVICE_UUID);
-    advertising->setScanResponse(true);
-    advertising->setMinPreferred(0x06);
-    advertising->setMinPreferred(0x12);
+    BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(FLEXPOOL_SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x06);
+    pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
     
-    Serial.printf("[BLE] Advertising as \"%s\" — waiting for browser connection...\n", BLE_DEVICE_NAME);
+    Serial.printf("[BLE] Advertising as 'FlexPool' (Device ID: %s)\n", deviceId);
+    Serial.println("[BLE] Waiting for connection from Chrome (PC or Android)...\n");
     
-    // ---- Main loop: wait for phone to connect and send credentials ----
+    // Wait for credentials (up to 5 minutes)
     unsigned long startTime = millis();
-    unsigned long lastMsg = 0;
-    
-    while (!_shouldRestart && (millis() - startTime < BLE_TIMEOUT_MS)) {
-      // Handle WiFi credentials if received
-      if (_credentialsReceived) {
-        handleCredentials();
-      }
+    while (!_credentialsReceived && (millis() - startTime < BLE_TIMEOUT_MS)) {
+      delay(100);
       
-      // Handle WiFi scan request
-      if (_scanRequested) {
-        handleScanRequest();
-      }
-      
-      // Periodic status message
-      if (millis() - lastMsg > 15000) {
+      // Print periodic reminder every 30 seconds
+      static unsigned long lastReminder = 0;
+      if (millis() - lastReminder > 30000) {
         unsigned long remaining = (BLE_TIMEOUT_MS - (millis() - startTime)) / 1000;
-        Serial.printf("[BLE] Waiting for connection... (%lu seconds remaining)\n", remaining);
-        lastMsg = millis();
+        Serial.printf("[BLE] Still waiting... (%lu seconds remaining)\n", remaining);
+        lastReminder = millis();
+      }
+    }
+    
+    // Stop BLE
+    BLEDevice::stopAdvertising();
+    
+    if (_credentialsReceived) {
+      Serial.println("\n[BLE] Credentials received! Attempting WiFi connection...");
+      
+      // Try to connect
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(_newSSID.c_str(), _newPassword.c_str());
+      
+      int attempts = 0;
+      while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        delay(500);
+        Serial.print(".");
+        attempts++;
       }
       
-      delay(50);
-    }
-    
-    // ---- Cleanup ----
-    Serial.println("[BLE] Shutting down Bluetooth...");
-    BLEDevice::deinit(true);  // true = release memory
-    delay(500);
-    
-    if (_shouldRestart) {
-      Serial.println("[BLE] Setup complete! Restarting into normal mode...\n");
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("\n[WiFi] Connected to \"%s\"!\n", _newSSID.c_str());
+        Serial.printf("[WiFi] IP: %s\n", WiFi.localIP().toString().c_str());
+        
+        // Notify via BLE
+        _charStatus->setValue("CONNECTED");
+        _charStatus->notify();
+        
+        // Also send the GitHub Pages URL with device ID
+        Serial.println();
+        Serial.println("════════════════════════════════════════════════");
+        Serial.println("  WiFi setup complete! Saving and rebooting...");
+        Serial.printf( "  Control URL: https://taejoonest.github.io/FlexPool?id=%s\n", deviceId);
+        Serial.println("════════════════════════════════════════════════");
+        
+        delay(2000);  // Give BLE time to send notification
+        
+        // Save credentials
+        saveCredentials(_newSSID, _newPassword);
+        
+        // Clean up BLE to free memory
+        BLEDevice::deinit(true);
+        
+        delay(500);
+        ESP.restart();
+      } else {
+        Serial.println("\n[WiFi] Connection failed!");
+        _charStatus->setValue("FAILED");
+        _charStatus->notify();
+        
+        delay(3000);
+        Serial.println("[BLE] Please try again with correct credentials.");
+        
+        // Clean up and restart provisioning
+        BLEDevice::deinit(true);
+        delay(500);
+        ESP.restart();
+      }
     } else {
-      Serial.println("[BLE] Timeout (5 min). Restarting to try again...\n");
+      // Timeout - no credentials received
+      Serial.println("\n[BLE] Timeout - no credentials received in 5 minutes.");
+      Serial.println("[BLE] Restarting. Type 'setup' in Serial Monitor to try again.");
+      
+      BLEDevice::deinit(true);
+      delay(500);
+      ESP.restart();
     }
-    
-    delay(500);
-    ESP.restart();
   }
 };
 
