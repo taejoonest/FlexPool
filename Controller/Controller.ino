@@ -458,8 +458,28 @@ void handleSerialCommand(String input) {
       break;
     }
     case 12: runFullStopSequence(); break;
+    case 99: {
+      // RAW TEST: Send a simple known pattern to diagnose RS-485 link
+      Serial.println("\n>> RAW TEST: Sending 5 bytes: AA BB CC DD EE");
+      uint8_t testData[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+      
+      // Clear stale RX
+      while (Serial2.available()) Serial2.read();
+      
+      digitalWrite(RS485_DE_RE_PIN, HIGH);
+      delayMicroseconds(500);
+      
+      Serial2.write(testData, 5);
+      Serial2.flush();
+      delay(10);  // 5 bytes at 9600 = ~5.2ms, plus margin
+      
+      digitalWrite(RS485_DE_RE_PIN, LOW);
+      
+      Serial.println("   Sent! Check Pump Serial Monitor for: AA BB CC DD EE");
+      break;
+    }
     default:
-      Serial.println("Unknown command. Enter 1-12.");
+      Serial.println("Unknown command. Enter 1-12 (or 99 for raw test).");
       printMenu();
       break;
   }
@@ -686,25 +706,28 @@ void sendRS485(uint8_t* data, size_t length) {
   // Clear any stale bytes in the receive buffer
   while (Serial2.available()) Serial2.read();
   
-  digitalWrite(RS485_DE_RE_PIN, HIGH);  // Enable transmit
-  delay(50);  // 50ms for bus and DE/RE to fully stabilize
+  // Enable transmitter
+  digitalWrite(RS485_DE_RE_PIN, HIGH);
+  delayMicroseconds(500);  // Let DE/RE stabilize
   
-  // Send each byte individually with explicit per-byte timing.
-  // At 9600 baud (8N1), each byte = 10 bits = 1.042ms on the wire.
-  // We wait 2ms between bytes to guarantee each one finishes before the next.
-  for (size_t i = 0; i < length; i++) {
-    Serial2.write(data[i]);
-    Serial2.flush();        // Wait for this byte to leave the buffer
-    delay(2);               // 2ms gap = nearly 2× the byte time at 9600
-  }
+  // Send 3 sync bytes (0xFF) BEFORE the actual packet.
+  // The receiver may miss the first few bytes after the bus transitions
+  // from idle/floating to actively driven. These sacrificial bytes absorb that.
+  // The receiver will ignore them since they don't form a valid preamble.
+  uint8_t sync[] = {0xFF, 0xFF, 0xFF};
+  Serial2.write(sync, 3);
+  Serial2.flush();
+  delay(4);  // Wait for sync bytes to fully transmit (~3.1ms at 9600)
   
-  // Extra safety: wait 50ms after last byte to make sure it's fully on the wire
-  delay(50);
+  // Now send the actual packet — the receiver is synced and ready
+  Serial2.write(data, length);
+  Serial2.flush();
+  
+  // Wait for all bytes to physically leave the wire
+  unsigned int safetyMs = ((length * 11) / 10) + 5;
+  delay(safetyMs);
   
   digitalWrite(RS485_DE_RE_PIN, LOW);   // Switch back to receive mode
-  
-  unsigned int totalMs = 50 + (length * 4) + 50;  // approximate total DE hold time
-  Serial.printf("  (DE held HIGH for ~%dms total)\n", totalMs);
 }
 
 // =============================================
@@ -893,6 +916,7 @@ void printMenu() {
   Serial.println("  7-10 - Set mode (Speed 1-4)");
   Serial.println("  11 - FULL: Set RPM and run");
   Serial.println("  12 - FULL: Stop pump");
+  Serial.println("  99 - RAW TEST (sends AA BB CC DD EE)");
   Serial.println("  --- WiFi ---");
   Serial.println("  setup - Start Bluetooth WiFi setup");
   Serial.println("  wifi  - Connect WiFi (if credentials saved)");
