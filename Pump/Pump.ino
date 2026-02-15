@@ -126,16 +126,10 @@ void setup() {
 void loop() {
   // Check for incoming RS-485 packets
   if (Serial2.available()) {
-    // Read bytes with a timeout — keep reading until no new bytes for 20ms
-    // At 9600 baud, inter-byte gap within a packet is ~1ms,
-    // so 20ms of silence means the full packet has arrived.
+    delay(100);  // Wait 100ms for full packet to arrive (at 9600 baud, 12 bytes ≈ 12ms)
     size_t len = 0;
-    unsigned long lastByteTime = millis();
-    while (millis() - lastByteTime < 20 && len < sizeof(rxBuffer)) {
-      if (Serial2.available()) {
-        rxBuffer[len++] = Serial2.read();
-        lastByteTime = millis();  // Reset timeout on each byte
-      }
+    while (Serial2.available() && len < sizeof(rxBuffer)) {
+      rxBuffer[len++] = Serial2.read();
     }
     
     if (len > 0) {

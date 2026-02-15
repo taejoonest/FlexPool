@@ -179,14 +179,10 @@ void loop() {
   
   // Check for RS-485 responses from pump
   if (Serial2.available()) {
-    // Read bytes with a timeout — keep reading until no new bytes for 20ms
-    unsigned long lastByteTime = millis();
+    delay(100);  // Wait 100ms for full packet to arrive
     rxLen = 0;
-    while (millis() - lastByteTime < 20 && rxLen < sizeof(rxBuffer)) {
-      if (Serial2.available()) {
-        rxBuffer[rxLen++] = Serial2.read();
-        lastByteTime = millis();
-      }
+    while (Serial2.available() && rxLen < sizeof(rxBuffer)) {
+      rxBuffer[rxLen++] = Serial2.read();
     }
     
     if (rxLen > 0) {
