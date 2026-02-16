@@ -188,12 +188,6 @@ void processIncoming(uint8_t* data, size_t length) {
   
   size_t totalLen = pentairPacketLength(pkt);
   
-  // Print received packet
-  Serial.printf("\n>> RX [%d bytes]: ", length);
-  for (size_t i = 0; i < length; i++) {
-    Serial.printf("%02X ", data[i]);
-  }
-  Serial.println();
   Serial.printf("   Dst: 0x%02X  Src: 0x%02X  Cmd: 0x%02X  Len: %d\n",
                 dst, src, cmd, dataLen);
   
